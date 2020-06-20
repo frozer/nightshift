@@ -1,0 +1,8 @@
+
+NightShift libdozor
+---------
+
+provides C functions to unpack and pack Astra Dozor Security System
+messages.
+
+-- Denis Morozov <n.halcyon@gmail.com>

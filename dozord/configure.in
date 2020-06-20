@@ -1,0 +1,26 @@
+AC_PREREQ([2.69])
+AC_INIT([dozord],[0.8.1],[n.halcyon@gmail.com])
+AM_INIT_AUTOMAKE
+AC_CONFIG_SRCDIR([dozord.c])
+AC_CONFIG_HEADERS([config.h])
+AM_PROG_LIBTOOL
+
+# Checks for programs.
+AC_PROG_CC
+
+# Checks for libraries.
+AX_PTHREAD
+
+# Checks for header files.
+AC_CHECK_HEADERS([arpa/inet.h inttypes.h netinet/in.h stdlib.h string.h sys/socket.h unistd.h pthread.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_UINT32_T
+AC_TYPE_UINT8_T
+
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_CHECK_FUNCS([bzero socket strerror strtol])
+
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

@@ -1,0 +1,9 @@
+
+NightShift parser
+---------
+
+NightShift is a free implementation of the Astra Dozor Security
+System server to collect security events and control Astra 
+Dozor Box. See more at https://github.com/frozer/nightshift
+
+-- Denis Morozov <n.halcyon@gmail.com>
