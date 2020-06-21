@@ -62,6 +62,7 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
     {
       printf("***device-event(getDeviceEvents): No events\n");
     }
+    free(deviceEvent);
     return 0;
   }
 

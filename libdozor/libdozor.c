@@ -190,8 +190,8 @@ unsigned short int dozor_pack(CommandResponse * command,
   {
     free(cmdValue);
     free(response);
-    free(answer);
     fprintf(stderr, "Unable to encrypt message:\"%s\" %s\n", answer, strerror(errno));
+    free(answer);
     return -1;
   }
   
