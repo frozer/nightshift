@@ -92,7 +92,6 @@ int main(int argc, char **argv)
   strcpy(conn->pinCode, argv[1]);
 
   memcpy(&packet, data, sizeof(char) * msgLength / 2);
-  int realMsgLength = strtol(packet.data.aLength, 0, 10);  
 
   crypto = malloc(sizeof(CryptoSession));
   if (crypto == NULL)

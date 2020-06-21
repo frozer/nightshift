@@ -34,6 +34,5 @@ char * getDateTime(const uint32_t t)
   time_t ot;
   struct tm * date;
   ot = t + DATE_TIME_OFFSET;
-  date = localtime(&ot);
   return ctime(&ot);
 }
