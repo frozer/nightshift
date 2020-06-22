@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/inotify.h>
+#include <mosquitto.h>
 #include <dozor.h>
 #include "answer.h"
 #include "command.h"
