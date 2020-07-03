@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/inotify.h>
+#include <stdbool.h>
 #include <mosquitto.h>
 #include <dozor.h>
 #include "answer.h"
@@ -37,6 +38,8 @@
 #define DEFAULT_COMMANDS "commands.txt"
 #define DEBUG 0
 #define VERSION "0.8.1"
+#define MQTT_HOST "localhost"
+#define MQTT_PORT 1883
 
 struct GlobalArgs_t {
   unsigned int port;
@@ -52,13 +55,18 @@ unsigned char * userKey;
 
 static Commands * commands;
 
+struct mosquitto * mosq;
+int mosqConnectorId = 0;
+bool GlobalMQTTConnected = false;
+pthread_t GlobalReconnectThread = 0;
+
 void displayHelp()
 {
   printf("dozord %s\nUsage: ./dozord -p <port|1111> -k <device pincode> -c <commands file|commands.txt> -d\n", VERSION);
 }
 
 // handle commands file changes
-void * commandWatcherHandler(void * arg)
+void* commandWatcherHandler(void* arg)
 {
   char * fn = (char *)arg;
   int fd, wd;
@@ -137,7 +145,7 @@ void * commandWatcherHandler(void * arg)
 }
 
 // handle network connections
-void * handle(void * arg) 
+void* handle(void* arg) 
 {
   int c;
   connectionInfo * conn = (connectionInfo*) arg;
@@ -183,21 +191,202 @@ void * handle(void * arg)
 
   free(crypto);
   return (void *) 0;
-} 
+}
 
-// Driver function 
-int main(int argc, char **argv) 
-{ 
-  int opt;
-	int sockfd, newsockfd, len, pid, rc; 
+void* mqtt_thread_reconnect(void* args)
+{
+  struct mosquitto *mosq = NULL;
+	int sleep_time = 30;
+	if(args == NULL)
+	{
+		pthread_exit(0);
+		return 0;
+	}
+	mosq = (struct mosquitto*)args;
+	sleep_time += (10 - (rand() % 20));
+	sleep(sleep_time);
+	if(!GlobalMQTTConnected)
+		mosquitto_reconnect_async(mosq);
+	pthread_exit(0);
+	return 0;
+}
+
+void* mqtt_thread_connect(void* args)
+{
+  struct mosquitto *mosq = NULL;
+	
+	if(args == NULL)
+	{
+		pthread_exit(0);
+		return NULL;
+	}
+
+	mosq = (struct mosquitto *) args;
+  mosquitto_subscribe(mosq, NULL, "test", 0);
+
+  pthread_exit(0);
+  return NULL;
+}
+
+void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
+{
+  if (GlobalReconnectThread)
+  {
+    pthread_cancel(GlobalReconnectThread);
+    pthread_join(GlobalReconnectThread, NULL);
+    GlobalReconnectThread = 0;
+  }
+
+  if (result == 0)
+  {
+    pthread_t conn = 0;
+    printf("*** connect callback, rc=%d\n", result);
+    GlobalMQTTConnected = true;
+    if (pthread_create(&conn, NULL, mqtt_thread_connect, mosq) == 0)
+      pthread_detach(conn);
+  } else {
+    printf("*** broker connection lost\n");
+    GlobalMQTTConnected = false;
+    if (pthread_create(&GlobalReconnectThread, NULL, mqtt_thread_reconnect, mosq) != 0)
+      GlobalReconnectThread = 0;
+  }
+}
+
+void mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
+{
+	printf("Received topic: %s\n message: %s\n", message->topic, (char*)message->payload);
+}
+
+void* dozor_thread_listener()
+{
+  int sockfd, newsockfd, len, pid, rc; 
   int port;
   char clientIp[INET_ADDRSTRLEN];
-  char * commandFilename;
 	struct sockaddr_in servaddr, cli; 
   connectionInfo infos[5];
   pthread_t connectionWorkers[5];
   pthread_t watcherWorker;
   unsigned short int i = 0;
+
+// socket create and verification 
+	sockfd = socket(AF_INET, SOCK_STREAM, 0); 
+	if (sockfd == -1) { 
+		fprintf(stderr, "Socket create failed: %s\n", strerror(errno));
+		exit(-1); 
+	}
+	bzero(&servaddr, sizeof(servaddr)); 
+
+	// assign IP, PORT
+	servaddr.sin_family = AF_INET; 
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
+	servaddr.sin_port = htons(GlobalArgs.port); 
+
+	// Binding newly created socket to given IP and verification 
+	if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) { 
+		fprintf(stderr, "Socket bind failed: %s\n", strerror(errno));
+		exit(-1); 
+	}
+
+	// Now server is ready to listen and verification 
+	if ((listen(sockfd, 5)) != 0) { 
+		fprintf(stderr, "Socket listen failed: %s\n", strerror(errno));
+		exit(-1); 
+	}
+
+  while(true)
+  {
+    // Accept the data packet from client and verification 
+    newsockfd = accept(sockfd, (SA*)&cli, &len);
+
+    if (newsockfd < 0) { 
+      fprintf(stderr, "Server accept failed: %s\n", strerror(errno));
+      pthread_exit(NULL);
+      exit(-1);
+    }
+
+    inet_ntop( AF_INET, &cli.sin_addr, clientIp, INET_ADDRSTRLEN );   
+    
+    
+    if (GlobalArgs.debug) {
+      printf("New connection from: %s\n", clientIp);
+    }
+
+    strcpy(infos[i].clientIp, clientIp);
+    strcpy(infos[i].pinCode, GlobalArgs.pinCode);
+    infos[i].sock = newsockfd;
+    infos[i].debug = GlobalArgs.debug;    
+
+    rc = pthread_create(&connectionWorkers[i], NULL, handle, (void *) &infos[i]);
+    
+    if (rc)
+    {
+      fprintf(stderr, "Connection workers init failed: %s\n", strerror(errno));
+      exit(-1);
+    }
+    
+    i++;
+    if (i >= 4)
+    {
+      i = 0;
+      while (i < 4)
+      {
+        pthread_join(connectionWorkers[i++], NULL);
+      }
+      i = 0;
+    }
+  }
+}
+
+pthread_t startDozorListener()
+{
+  pthread_t thread = 0;
+  if (pthread_create(&thread, NULL, dozor_thread_listener, NULL) != 0)
+    thread = 0;
+  return thread;
+}
+
+int initializeMQTT()
+{
+  char clientId[24];
+  int rc = 0;
+  mosquitto_lib_init();
+  
+  memset(clientId, 0, 24);
+  sprintf(clientId, "test_%d", getpid());
+
+  mosq = mosquitto_new(clientId, 1, 0);
+  if (mosq)
+  {    
+    mosquitto_connect_callback_set(mosq, mqtt_connect_callback);
+    mosquitto_message_callback_set(mosq, mqtt_message_callback);
+
+    mosquitto_loop_start(mosq);
+    rc = mosquitto_connect(mosq, MQTT_HOST, MQTT_PORT, 60);
+    if (rc != MOSQ_ERR_SUCCESS)
+    {
+      printf("*** Unable to connect to broker!\n");
+    } else {
+      printf("*** Connected to broker!\n");
+    }
+
+    return rc;
+  }
+  return rc;
+}
+
+// Driver function 
+int main(int argc, char **argv) 
+{ 
+  int opt;
+	// int sockfd, newsockfd, len, pid, rc, mqtt; 
+  // int port;
+  // char clientIp[INET_ADDRSTRLEN];
+  char * commandFilename;
+	// struct sockaddr_in servaddr, cli; 
+  // connectionInfo infos[5];
+  // pthread_t connectionWorkers[5];
+  pthread_t watcherWorker;
+  // unsigned short int i = 0;
 
   GlobalArgs.port = DEFAULT_PORT;
   GlobalArgs.pinCode = NULL;
@@ -249,91 +438,31 @@ int main(int argc, char **argv)
 
   pthread_mutex_init(&writelock, NULL);
 
-	// socket create and verification 
-	sockfd = socket(AF_INET, SOCK_STREAM, 0); 
-	if (sockfd == -1) { 
-		fprintf(stderr, "Socket create failed: %s\n", strerror(errno));
-		exit(-1); 
-	}
-	bzero(&servaddr, sizeof(servaddr)); 
-
-	// assign IP, PORT
-	servaddr.sin_family = AF_INET; 
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-	servaddr.sin_port = htons(GlobalArgs.port); 
-
-	// Binding newly created socket to given IP and verification 
-	if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) { 
-		fprintf(stderr, "Socket bind failed: %s\n", strerror(errno));
-		exit(-1); 
-	}
-
-	// Now server is ready to listen and verification 
-	if ((listen(sockfd, 5)) != 0) { 
-		fprintf(stderr, "Socket listen failed: %s\n", strerror(errno));
-		exit(-1); 
-	}
-
   if (GlobalArgs.debug) {
     printf("Listen %d\n", GlobalArgs.port);
   }
 
-	len = sizeof(cli); 
-
   // initiate watcher
-  rc = pthread_create(&watcherWorker, NULL, commandWatcherHandler, (void *) GlobalArgs.commandsFilename);
-  if (rc)
-  {
-    fprintf(stderr, "Watcher worker failed: %s\n", strerror(errno));
-    exit(-1);
-  }
+  // if (pthread_create(&watcherWorker, NULL, commandWatcherHandler, (void *) GlobalArgs.commandsFilename) != 0)
+  // {
+  //   fprintf(stderr, "Watcher worker failed: %s\n", strerror(errno));
+  //   exit(-1);
+  // }
 
-  if (GlobalArgs.debug) {
-    printf("Commands file %s\n", GlobalArgs.commandsFilename);
-  }
+  // if (GlobalArgs.debug) {
+  //   printf("Commands file %s\n", GlobalArgs.commandsFilename);
+  // }
 
-  while(1)
-  {
-    // Accept the data packet from client and verification 
-    newsockfd = accept(sockfd, (SA*)&cli, &len);
+  // start listener
+  startDozorListener();
 
-    if (newsockfd < 0) { 
-      fprintf(stderr, "Server accept failed: %s\n", strerror(errno));
-      pthread_exit(NULL);
-      exit(-1);
-    }
-
-    inet_ntop( AF_INET, &cli.sin_addr, clientIp, INET_ADDRSTRLEN );   
-    
-    if (GlobalArgs.debug) {
-      printf("New connection from: %s\n", clientIp);
-    }
-
-    strcpy(infos[i].clientIp, clientIp);
-    strcpy(infos[i].pinCode, GlobalArgs.pinCode);
-    infos[i].sock = newsockfd;
-    infos[i].debug = GlobalArgs.debug;    
-
-    rc = pthread_create(&connectionWorkers[i], NULL, handle, (void *) &infos[i]);
-    
-    if (rc)
-    {
-      fprintf(stderr, "Connection workers init failed: %s\n", strerror(errno));
-      exit(-1);
-    }
-    
-    i++;
-    if (i >= 4)
-    {
-      i = 0;
-      while (i < 4)
-      {
-        pthread_join(connectionWorkers[i++], NULL);
-      }
-      i = 0;
-    }
-  }
+  // initialize MQTT
+  initializeMQTT();
 
   pthread_mutex_destroy(&writelock);
+    
   pthread_exit(NULL);
+
+  mosquitto_destroy(mosq);
+  mosquitto_lib_cleanup();
 } 
