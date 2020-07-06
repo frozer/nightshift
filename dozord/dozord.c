@@ -41,6 +41,17 @@
 #define MQTT_HOST "localhost"
 #define MQTT_PORT 1883
 
+// publish
+#define REPORT_TOPIC "/nightshift/site/%d/report"
+// publish
+#define EVENT_TOPIC "/nightshift/site/%d/event"
+// publish
+#define HEARBEAT_TOPIC "/nightshift/site/%d/notify"
+// subscribe
+#define COMMAND_TOPIC "/nightshift/site/%d/command"
+// publish
+#define COMMAND_RESULT_TOPIC "/nightshift/site/%d/commandresult"
+
 struct GlobalArgs_t {
   unsigned int port;
   char * pinCode;
@@ -453,14 +464,14 @@ int main(int argc, char **argv)
   //   printf("Commands file %s\n", GlobalArgs.commandsFilename);
   // }
 
-  // start listener
+  // start Dozor listener server on specified port
   startDozorListener();
 
   // initialize MQTT
   initializeMQTT();
 
   pthread_mutex_destroy(&writelock);
-    
+
   pthread_exit(NULL);
 
   mosquitto_destroy(mosq);
