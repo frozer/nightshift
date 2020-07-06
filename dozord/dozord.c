@@ -32,25 +32,13 @@
 #include "answer.h"
 #include "command.h"
 #include "event-stream.h"
+#include "nightshift-mqtt.h"
 
 #define SA struct sockaddr
 #define DEFAULT_PORT 1111
 #define DEFAULT_COMMANDS "commands.txt"
 #define DEBUG 0
 #define VERSION "0.8.1"
-#define MQTT_HOST "localhost"
-#define MQTT_PORT 1883
-
-// publish
-#define REPORT_TOPIC "/nightshift/site/%d/report"
-// publish
-#define EVENT_TOPIC "/nightshift/site/%d/event"
-// publish
-#define HEARBEAT_TOPIC "/nightshift/site/%d/notify"
-// subscribe
-#define COMMAND_TOPIC "/nightshift/site/%d/command"
-// publish
-#define COMMAND_RESULT_TOPIC "/nightshift/site/%d/commandresult"
 
 struct GlobalArgs_t {
   unsigned int port;
@@ -74,6 +62,16 @@ pthread_t GlobalReconnectThread = 0;
 void displayHelp()
 {
   printf("dozord %s\nUsage: ./dozord -p <port|1111> -k <device pincode> -c <commands file|commands.txt> -d\n", VERSION);
+}
+
+void getAgentInfo(char* agentInfo)
+{
+  if (agentInfo == NULL)
+  {
+    return;
+  }
+
+  sprintf(agentInfo, ACK_JSON, VERSION, "unknown.host", "test.id");
 }
 
 // handle commands file changes
@@ -225,15 +223,21 @@ void* mqtt_thread_reconnect(void* args)
 void* mqtt_thread_connect(void* args)
 {
   struct mosquitto *mosq = NULL;
-	
+  char agentInfo[256] = {0};
+
 	if(args == NULL)
 	{
 		pthread_exit(0);
 		return NULL;
 	}
 
+  getAgentInfo(agentInfo);
+
 	mosq = (struct mosquitto *) args;
-  mosquitto_subscribe(mosq, NULL, "test", 0);
+  
+  mosquitto_subscribe(mosq, NULL, COMMAND_TOPIC, 0);
+
+  mosquitto_publish(mosq, NULL, ACK_TOPIC, strlen(agentInfo), agentInfo, 0, false);
 
   pthread_exit(0);
   return NULL;
