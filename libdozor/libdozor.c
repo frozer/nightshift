@@ -45,8 +45,7 @@ int dozor_unpack(CryptoSession * crypto, connectionInfo * conn,
   short int result;
   union rawMessage packet;
   DozorReport * report;
-  
-  char * event;
+  EventInfo * eventInfo;
   
   if (crypto == NULL)
   {
@@ -93,28 +92,44 @@ int dozor_unpack(CryptoSession * crypto, connectionInfo * conn,
 
   if (report->eventTotals == 0)
   {
-    event = getKeepAliveEvent(report->site, &(report->info));
+    eventInfo = malloc(sizeof(EventInfo));
+    if (eventInfo == NULL)
+    {
+      fprintf(stderr, "Unable to allocate memory for event info structure: %s\n", strerror(errno));
+      return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
+    }
+    getKeepAliveEvent(eventInfo, report->site, &(report->info));
     
     if (debugMode)
     {
-      printf("%s\n", event);
+      printf("[%d] %s\n", eventInfo->eventType, eventInfo->event);
     }
 
-    callback(conn, event);
+    callback(conn, eventInfo);
+
+    free(eventInfo);
   }
 
   for (index = 0; index < report->eventTotals; index++)
   {
-    event = convertDeviceEventToCommon(report->site, &(report->events[index]));
+    eventInfo = malloc(sizeof(EventInfo));
+    if (eventInfo == NULL)
+    {
+      fprintf(stderr, "Unable to allocate memory for event info structure: %s\n", strerror(errno));
+      return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
+    }
+
+    convertDeviceEventToCommon(eventInfo, report->site, &(report->events[index]));
     
     if (debugMode) {
-      printf("%s\n", event);
+      printf("[%d] %s\n", eventInfo->eventType, eventInfo->event);
     }
-    callback(conn, event);
+    callback(conn, eventInfo);
+
+    free(eventInfo);
   }
   
   free(report);
-  free(event);
 
   return 0;
 }

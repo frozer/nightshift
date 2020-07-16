@@ -36,6 +36,18 @@
 #define VERSION_DATA_POSITION 1
 #define VERSION_MASK 0x7
 
+#define ENUM_EVENT_TYPE_COMMONEVENT 1
+#define ENUM_EVENT_TYPE_KEEPALIVE 2
+#define ENUM_EVENT_TYPE_COMMAND_RESPONSE 4
+#define ENUM_EVENT_TYPE_REPORT 16
+
+typedef struct {
+  char event[1024];
+  // ENUM_EVENT_TYPE_*
+  unsigned int eventType;
+  unsigned int siteId;
+} EventInfo;
+
 typedef struct COMMON_EVENT {
   uint8_t typeId;
   uint8_t site;
@@ -43,8 +55,8 @@ typedef struct COMMON_EVENT {
   char data[256];
 } CommonEvent;
 
-char* getKeepAliveEvent(uint8_t site, DeviceInfo* info);
-char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent);
+void getKeepAliveEvent(EventInfo* eventInfo, uint8_t site, DeviceInfo* info);
+void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent* deviceEvent);
 static char * getFirmwareVersionEventData(uint8_t type, uint8_t * data, uint8_t len);
 static char * getCommandEventData(uint8_t type, uint8_t * data, uint8_t len);
 static char * getReportEventData(uint8_t type, uint8_t * data, uint8_t len);

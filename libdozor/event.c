@@ -40,8 +40,12 @@ const char cmdResults[8][32] = {
   "Unknown", "Success", "Not implemented", "Incorrect parameter(s)", "Busy", "Unable to execute", "Already executed", "No access"
 };
 
-char* getKeepAliveEvent(uint8_t site, DeviceInfo* info)
+void getKeepAliveEvent(EventInfo* eventInfo, uint8_t site, DeviceInfo* info)
 {
+  if (eventInfo == NULL) {
+    return;
+  }
+
   const char * template = "{ \
 \"site\":%d,\"typeId\":null,\
 \"event\":\"KeepAliveEvent\",\
@@ -66,11 +70,19 @@ char* getKeepAliveEvent(uint8_t site, DeviceInfo* info)
   }
   strcat(res, "\"}");
 
-  return res;
+  eventInfo->eventType = ENUM_EVENT_TYPE_KEEPALIVE;
+  sprintf(eventInfo->event, "%s", res);
+  eventInfo->siteId = site;
+  free(res);
 }
 
-char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent)
+void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent* deviceEvent)
 {
+  if (eventInfo == NULL) {
+    return;
+  }
+  eventInfo->eventType = ENUM_EVENT_TYPE_COMMONEVENT;
+
   const char * template = "{\"site\":%d,\"typeId\":%d,\"timestamp\":\"%s\",\"data\":\"";
   char * timestamp = malloc(sizeof(char) * 25);
   char * res = malloc(sizeof(char) * 1024);
@@ -134,11 +146,13 @@ char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent)
     // ReportEvent
     case 0x25:
       strcat(res, getReportEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_REPORT;
       break;
 
     // Remote Command Executed
     case 0x3f:
       strcat(res, getCommandEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_COMMAND_RESPONSE;
       break;
 
     case 0x1:
@@ -155,7 +169,9 @@ char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent)
   free(timestamp);
   free(temp);
   
-  return res;
+  sprintf(eventInfo->event, "%s", res);
+  eventInfo->siteId = site;
+  free(res);
 }
 
 static char * getFirmwareVersionEventData(uint8_t type, uint8_t * data, uint8_t len)

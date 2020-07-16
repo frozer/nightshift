@@ -19,6 +19,7 @@
 #define DOZOR_H
 #include "session.h"
 #include "dozor-crypto.h"
+#include "event.h"
 
 #define DEFAULT_ANSWER ""
 #define END_OF_COMMAND "!"
