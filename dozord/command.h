@@ -19,6 +19,7 @@
 
 #ifndef COMMAND_H
 #define COMMAND_H
+#define MAX_COMMAND_QUEUE_LENGTH 256
 
 typedef struct command {
   uint32_t id;
@@ -27,11 +28,12 @@ typedef struct command {
 } Command;
 
 typedef struct {
-  Command items[256];
+  Command items[MAX_COMMAND_QUEUE_LENGTH];
   unsigned short int length;
 } Commands;
 
 short int getNextCommand(Commands *);
 void readCommandsFromFile(Commands *, char * fn, const unsigned short int debugMode);
+void readCommandsFromString(Commands * commands, char * command, const unsigned short int debugMode);
 
 #endif

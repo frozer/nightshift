@@ -31,7 +31,6 @@
 #include <dozor.h>
 #include "answer.h"
 #include "command.h"
-#include "event-stream.h"
 #include "nightshift-mqtt.h"
 
 #define SA struct sockaddr
@@ -39,14 +38,16 @@
 #define DEFAULT_COMMANDS "commands.txt"
 #define DEBUG 0
 #define VERSION "0.8.1"
+#define AGENT_ID "80d7be61-d81d-4aac-9012-6729b6392a89"
 
 struct GlobalArgs_t {
+  unsigned int siteId;
   unsigned int port;
   char * pinCode;
   char * commandsFilename;
   unsigned int debug;
 } GlobalArgs;
-static const char * optString = "p:k:c:h?:d";
+static const char * optString = "p:k:c:s:h?:d";
 
 pthread_mutex_t writelock;
 
@@ -59,9 +60,44 @@ int mosqConnectorId = 0;
 bool GlobalMQTTConnected = false;
 pthread_t GlobalReconnectThread = 0;
 
+void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
+{
+  time_t ticks;
+  char receivedTimestamp[25] = {0};
+  char report[2048] = {0};
+  char topic[256] = {0};
+
+  const char * template = "{\"deviceIp\":\"%s\",\"received\":\"%s\",\"event\":%s}\n";
+
+  ticks = time(NULL);
+  
+  sprintf(receivedTimestamp, "%.24s", ctime(&ticks));  
+  sprintf(report, template, conn->clientIp, receivedTimestamp, eventInfo->event);
+  
+  switch(eventInfo->eventType)
+  {
+    case ENUM_EVENT_TYPE_COMMAND_RESPONSE:
+      sprintf(topic, COMMAND_RESULT_TOPIC, eventInfo->siteId);
+      break;
+    
+    case ENUM_EVENT_TYPE_KEEPALIVE:
+      sprintf(topic, HEARBEAT_TOPIC, eventInfo->siteId);
+      break;
+
+    default:    
+      sprintf(topic, EVENT_TOPIC, eventInfo->siteId);
+  }
+
+  if (GlobalMQTTConnected)
+  {
+    mosquitto_publish(mosq, NULL, topic, strlen(report), report, 0, false);
+    printf(template, conn->clientIp, receivedTimestamp, eventInfo->event);
+  }  
+}
+
 void displayHelp()
 {
-  printf("dozord %s\nUsage: ./dozord -p <port|1111> -k <device pincode> -c <commands file|commands.txt> -d\n", VERSION);
+  printf("dozord %s\nUsage: ./dozord -s <site> -p <port|1111> -k <device pincode> -d\n", VERSION);
 }
 
 void getAgentInfo(char* agentInfo)
@@ -71,86 +107,19 @@ void getAgentInfo(char* agentInfo)
     return;
   }
 
-  sprintf(agentInfo, ACK_JSON, VERSION, "unknown.host", "test.id");
+  sprintf(agentInfo, ACK_JSON, VERSION, AGENT_ID, GlobalArgs.siteId);
 }
 
-// handle commands file changes
-void* commandWatcherHandler(void* arg)
+void initCommandsStore()
 {
-  char * fn = (char *)arg;
-  int fd, wd;
-
-  pthread_mutex_lock(&writelock);
-  
   commands = malloc(sizeof(Commands));
   if (commands == NULL)
   {
     fprintf(stderr, "Unable to allocate memory for commands: %s\n", strerror(errno));
-    return (void *) -1;
+    exit(-1);
   }
   
   commands->length = 0;
-
-  readCommandsFromFile(commands, fn, GlobalArgs.debug);
-
-  pthread_mutex_unlock(&writelock); 
-  
-
-  fd = inotify_init();
-  if (fd < 0)
-  {
-    perror("Error inotify initialization!");
-    free(commands);
-    return (void *) -1;
-  }
-  
-  wd = inotify_add_watch( fd, fn, IN_MODIFY);
-  
-  if (wd<0)
-  {
-    perror("Error add watch");
-    free(commands);
-    return (void *) -1;
-  }
-
-  while(1) {
-    char buffer[4096];
-    struct inotify_event *event = NULL;
-    int exec = 0;
-
-    int len = read(fd, buffer, sizeof(buffer));
-    if (len < 0) {
-        pthread_mutex_lock(&writelock);
-        free(commands);
-        pthread_mutex_unlock(&writelock);
-        fprintf(stderr, "read: %s\n", strerror(errno));
-        exit(-1);
-    }
-
-    event = (struct inotify_event *) buffer;
-    while(event != NULL) {
-        if ( (event->mask & IN_MODIFY) && event->len > 0) {
-            // printf("File Modified: %s\n", event->name);
-        } else {
-            pthread_mutex_lock(&writelock);
-            readCommandsFromFile(commands, fn, GlobalArgs.debug);
-            pthread_mutex_unlock(&writelock);
-        }
-
-        /* Move to next struct */
-        len -= sizeof(*event) + event->len;
-        if (len > 0)
-            event = ((void *) event) + sizeof(event) + event->len;
-        else
-            event = NULL;
-    }
-  }
-  inotify_rm_watch( fd, wd );
-
-  pthread_mutex_lock(&writelock);
-  free(commands);
-  pthread_mutex_unlock(&writelock);
-  return 0;
 }
 
 // handle network connections
@@ -224,6 +193,8 @@ void* mqtt_thread_connect(void* args)
 {
   struct mosquitto *mosq = NULL;
   char agentInfo[256] = {0};
+  char commandTopic[256] = {0};
+  sprintf(commandTopic, COMMAND_TOPIC, GlobalArgs.siteId);
 
 	if(args == NULL)
 	{
@@ -235,7 +206,7 @@ void* mqtt_thread_connect(void* args)
 
 	mosq = (struct mosquitto *) args;
   
-  mosquitto_subscribe(mosq, NULL, COMMAND_TOPIC, 0);
+  mosquitto_subscribe(mosq, NULL, commandTopic, 0);
 
   mosquitto_publish(mosq, NULL, ACK_TOPIC, strlen(agentInfo), agentInfo, 0, false);
 
@@ -255,7 +226,11 @@ void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
   if (result == 0)
   {
     pthread_t conn = 0;
-    printf("*** connect callback, rc=%d\n", result);
+    if (GlobalArgs.debug)
+    {
+      printf("*** connect callback, rc=%d\n", result);
+    }
+
     GlobalMQTTConnected = true;
     if (pthread_create(&conn, NULL, mqtt_thread_connect, mosq) == 0)
       pthread_detach(conn);
@@ -269,7 +244,9 @@ void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
 
 void mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {
-	printf("Received topic: %s\n message: %s\n", message->topic, (char*)message->payload);
+	pthread_mutex_lock(&writelock);
+  readCommandsFromString(commands, (char *)message->payload, GlobalArgs.debug);
+  pthread_mutex_unlock(&writelock);
 }
 
 void* dozor_thread_listener()
@@ -393,17 +370,11 @@ int initializeMQTT()
 int main(int argc, char **argv) 
 { 
   int opt;
-	// int sockfd, newsockfd, len, pid, rc, mqtt; 
-  // int port;
-  // char clientIp[INET_ADDRSTRLEN];
   char * commandFilename;
-	// struct sockaddr_in servaddr, cli; 
-  // connectionInfo infos[5];
-  // pthread_t connectionWorkers[5];
   pthread_t watcherWorker;
-  // unsigned short int i = 0;
 
   GlobalArgs.port = DEFAULT_PORT;
+  GlobalArgs.siteId = 0;
   GlobalArgs.pinCode = NULL;
   GlobalArgs.commandsFilename = DEFAULT_COMMANDS;
   GlobalArgs.debug = DEBUG;
@@ -426,8 +397,8 @@ int main(int argc, char **argv)
         GlobalArgs.pinCode = optarg;
         break;
 
-      case 'c':
-        GlobalArgs.commandsFilename = optarg;
+      case 's':
+        GlobalArgs.siteId = strtol(optarg, 0, 10);
         break;
 
       case 'h':
@@ -445,6 +416,12 @@ int main(int argc, char **argv)
     }
   }
 
+  if (GlobalArgs.siteId == 0)
+  {
+    printf("Guard device ID is not set. Exiting.\n");
+		return 0;  
+  }
+
   if (GlobalArgs.pinCode == NULL)
   {
     printf("Guard device pincode is not set. Exiting.\n");
@@ -457,19 +434,10 @@ int main(int argc, char **argv)
     printf("Listen %d\n", GlobalArgs.port);
   }
 
-  // initiate watcher
-  // if (pthread_create(&watcherWorker, NULL, commandWatcherHandler, (void *) GlobalArgs.commandsFilename) != 0)
-  // {
-  //   fprintf(stderr, "Watcher worker failed: %s\n", strerror(errno));
-  //   exit(-1);
-  // }
-
-  // if (GlobalArgs.debug) {
-  //   printf("Commands file %s\n", GlobalArgs.commandsFilename);
-  // }
-
   // start Dozor listener server on specified port
   startDozorListener();
+
+  initCommandsStore();
 
   // initialize MQTT
   initializeMQTT();

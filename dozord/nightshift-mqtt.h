@@ -13,13 +13,11 @@
 // publish
 #define HEARBEAT_TOPIC "/nightshift/site/%d/notify"
 // subscribe
-#define COMMAND_TOPIC "/nightshift/command"
+#define COMMAND_TOPIC "/nightshift/site/%d/command"
 // publish
 #define COMMAND_RESULT_TOPIC "/nightshift/site/%d/commandresult"
 
-#define ACK_JSON "{version: \"%s\", name: \"nightshift\", hostname: \"%s\", agentID: \"%s\"}"
-#define EVENT_JSON "{agentID: \"%s\", event: %s}"
-#define HEARTBEAT_JSON "{agentID: \"%s\", event: %s}"
-#define COMMAND_RESULT_JSON "{agentID: \"%s\", commandId: %d, result: %s}"
+#define ACK_JSON "{version: \"%s\", name: \"nightshift\", agentID: \"%s\", siteId: %d}"
+#define PAYLOAD_JSON "{agentID: \"%s\", event: %s}"
 
 #endif
