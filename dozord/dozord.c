@@ -64,16 +64,18 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
 {
   time_t ticks;
   char receivedTimestamp[25] = {0};
-  char report[2048] = {0};
+  char eventReport[2048] = {0};
+  char report[3072] = {0};
   char topic[256] = {0};
 
-  const char * template = "{\"deviceIp\":\"%s\",\"received\":\"%s\",\"event\":%s}\n";
+  const char * eventTemplate = "{\"deviceIp\":\"%s\",\"received\":\"%s\",\"event\":%s}\n";
 
   ticks = time(NULL);
   
   sprintf(receivedTimestamp, "%.24s", ctime(&ticks));  
-  sprintf(report, template, conn->clientIp, receivedTimestamp, eventInfo->event);
-  
+  sprintf(eventReport, eventTemplate, conn->clientIp, receivedTimestamp, eventInfo->event);
+  sprintf(report, PAYLOAD_JSON, AGENT_ID, eventReport);
+
   switch(eventInfo->eventType)
   {
     case ENUM_EVENT_TYPE_COMMAND_RESPONSE:
@@ -91,7 +93,7 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
   if (GlobalMQTTConnected)
   {
     mosquitto_publish(mosq, NULL, topic, strlen(report), report, 0, false);
-    printf(template, conn->clientIp, receivedTimestamp, eventInfo->event);
+    printf(eventTemplate, conn->clientIp, receivedTimestamp, eventInfo->event);
   }  
 }
 
@@ -344,7 +346,7 @@ int initializeMQTT()
   mosquitto_lib_init();
   
   memset(clientId, 0, 24);
-  sprintf(clientId, "test_%d", getpid());
+  sprintf(clientId, "nightshift_%d", getpid());
 
   mosq = mosquitto_new(clientId, 1, 0);
   if (mosq)
@@ -358,7 +360,10 @@ int initializeMQTT()
     {
       printf("*** Unable to connect to broker!\n");
     } else {
-      printf("*** Connected to broker!\n");
+      if (GlobalArgs.debug)
+      {
+        printf("*** Connected to broker!\n");
+      }
     }
 
     return rc;
