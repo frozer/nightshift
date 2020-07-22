@@ -78,6 +78,10 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
 
   switch(eventInfo->eventType)
   {
+    case ENUM_EVENT_TYPE_REPORT:
+      sprintf(topic, REPORT_TOPIC, eventInfo->siteId);
+      break;
+
     case ENUM_EVENT_TYPE_COMMAND_RESPONSE:
       sprintf(topic, COMMAND_RESULT_TOPIC, eventInfo->siteId);
       break;

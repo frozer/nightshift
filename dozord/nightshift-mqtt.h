@@ -18,6 +18,6 @@
 #define COMMAND_RESULT_TOPIC "/nightshift/sites/%d/commandresults"
 
 #define ACK_JSON "{\"version\": \"%s\", \"name\": \"nightshift\", \"agentID\": \"%s\", \"siteId\": %d}"
-#define PAYLOAD_JSON "{\"agentID\": \"%s\", \"event\": %s}"
+#define PAYLOAD_JSON "{\"agentID\": \"%s\", \"report\": %s}"
 
 #endif
