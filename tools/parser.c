@@ -23,7 +23,7 @@
 #include <dozor.h>
 
 #define BUFFERSIZE 1024
-#define VERSION "1.0.1"
+#define VERSION "1.0.2"
 
 union rawMessage {
   struct {
@@ -41,8 +41,9 @@ void eventCallback(connectionInfo * conn, char * event)
 void hexstr2char(char * dest, const char *hexstr, const size_t len)
 {
   int j;
+  size_t i;
 
-  for (size_t i=0, j=0; j<len; i+=2, j++)
+  for (i=0, j=0; j<len; i+=2, j++)
       dest[j] = (hexstr[i] % 32 + 9) % 25 * 16 + (hexstr[i+1] % 32 + 9) % 25;
   
   dest[len] = '\0';
