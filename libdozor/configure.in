@@ -11,14 +11,19 @@ AM_PROG_LIBTOOL
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CC_STDC
 AC_PROG_MAKE_SET
 
 AC_HEADER_STDC
 
 # Checks for libraries.
+AC_CHECK_LIB(mosquitto,mosquitto_publish, [], [
+  echo "Error! You need to have libmosquitto around."
+  exit -1
+])
 
 # Checks for header files.
-AC_CHECK_HEADERS([inttypes.h stdint.h stdlib.h string.h unistd.h byteswap.h])
+AC_CHECK_HEADERS([inttypes.h stdint.h stdlib.h string.h unistd.h byteswap.h mosquitto.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
