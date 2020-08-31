@@ -90,6 +90,15 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
       sprintf(topic, HEARBEAT_TOPIC, eventInfo->siteId);
       break;
 
+    case ENUM_EVENT_TYPE_ZONEINFO:
+      sprintf(topic, ZONE_TOPIC, eventInfo->siteId, eventInfo->sourceId);
+      break;
+
+    case ENUM_EVENT_TYPE_SECTIONINFO:
+      sprintf(topic, SECTION_TOPIC, eventInfo->siteId, eventInfo->sourceId);
+      break;
+
+
     default:    
       sprintf(topic, EVENT_TOPIC, eventInfo->siteId);
   }

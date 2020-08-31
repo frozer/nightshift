@@ -240,6 +240,10 @@ Result ID|Result Name
 ```
 {"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "report": {"deviceIp":"127.0.0.1","received":"Wed Jul 22 09:32:48 2020","event":{"site":1,"typeId":3,"timestamp":"Mon Jan  1 05:00:33 2001","data":"1121","zone":17,"event":"ZoneDisarm","scope":"Zone"}}}
 ```
+* /nightshift/sites/%d/zone/%d/event - события от устройства. Формат сообщения:
+
+* /nightshift/sites/%d/section/%d/event - события от устройства. Формат сообщения:
+
 * /nightshift/sites/%d/notify - heartbeat-события от устройства
 ```
 {"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "report": {"deviceIp":"127.0.0.1","received":"Wed Jul 22 09:35:24 2020","event":{ "site":1,"typeId":null,"event":"KeepAliveEvent","scope":"KeepAlive","channel":0,"sim":0,"voltage":17.00,"signal":0,"extraId":1,"extraValue":20,"data":"0000B2401400"}}}

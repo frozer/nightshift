@@ -23,6 +23,7 @@
 #include "utils.h"
 
 #define EVENT_COUNT 64
+#define EVENT_TIMESTAMP_LENGTH 25
 #define MAX_EVENT_NAME_LENGTH 25
 #define COMMON_EVENT_SCOPE "Common"
 #define AUTH_EVENT_SCOPE "Auth"
@@ -39,19 +40,24 @@
 #define ENUM_EVENT_TYPE_COMMONEVENT 1
 #define ENUM_EVENT_TYPE_KEEPALIVE 2
 #define ENUM_EVENT_TYPE_COMMAND_RESPONSE 4
-#define ENUM_EVENT_TYPE_REPORT 16
+#define ENUM_EVENT_TYPE_REPORT 8
+#define ENUM_EVENT_TYPE_ZONEINFO 16
+#define ENUM_EVENT_TYPE_SECTIONINFO 32
+#define ENUM_EVENT_TYPE_USERAUTHINFO 64
 
 typedef struct {
   char event[1024];
   // ENUM_EVENT_TYPE_*
   unsigned int eventType;
+  // Event source id depends on event type, might be - zone, section, user
+  char sourceId[4];
   unsigned int siteId;
 } EventInfo;
 
 typedef struct COMMON_EVENT {
   uint8_t typeId;
   uint8_t site;
-  char timestamp[25];
+  char timestamp[EVENT_TIMESTAMP_LENGTH];
   char data[256];
 } CommonEvent;
 

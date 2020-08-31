@@ -113,6 +113,8 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0xd:
     case 0xf:
       strcat(res, getZoneEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_ZONEINFO;
       break;
 
     // SectionEvent
@@ -123,17 +125,22 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0x35:
     case 0x37:
       strcat(res, getSectionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_SECTIONINFO;
       break;
 
     // AuthenticationEvent
     case 0x1b:
       strcat(res, getAuthEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
       break;
 
     // Arm / Disarm by user
     case 0x39:
     case 0x3a:
       strcat(res, getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, USER_DATA_POSITION, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_USERAUTHINFO;
       break;
 
     // SecurityEvent
