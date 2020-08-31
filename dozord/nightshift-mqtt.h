@@ -13,9 +13,9 @@
 // publish
 #define HEARBEAT_TOPIC "/nightshift/sites/%d/notify"
 // publish
-#define SECTION_TOPIC "/nightshift/sites/%d/sections/%s"
+#define SECTION_TOPIC "/nightshift/sites/%d/sections/%s/events"
 // publish
-#define ZONE_TOPIC "/nightshift/sites/%d/zones/%s"
+#define ZONE_TOPIC "/nightshift/sites/%d/zones/%s/events"
 // publish
 #define COMMAND_RESULT_TOPIC "/nightshift/sites/%d/commandresults"
 
