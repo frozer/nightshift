@@ -67,12 +67,14 @@ int dozor_unpack(CryptoSession * crypto, connectionInfo * conn,
 
   if (debugMode)
   {
-    printf("\n[%d]: ", msgLength - 4);
+    printf("\n>>> Incoming message...\n");
+    printf("[%d]: ", msgLength - 4);
     for (index = 0; index < msgLength; index++)
     {
       printf("%02X", *(ptr + index));
     }
     printf("\n");
+    printf(">>> Incoming message End\n");
   }
 
   report = malloc(sizeof(DozorReport));
@@ -88,6 +90,11 @@ int dozor_unpack(CryptoSession * crypto, connectionInfo * conn,
     fprintf(stderr, "ERROR: Unable to recognize message!!! Error - %d\n", result);
     free(report);
     return HANDLER_UNABLE_TO_RECOGNIZE_MESSAGE;
+  }
+
+  if (debugMode)
+  {
+    printf(">>> Total %d events found\n", report->eventTotals);
   }
 
   if (report->eventTotals == 0)

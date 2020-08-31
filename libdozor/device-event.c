@@ -52,7 +52,7 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
 
   if (deviceEvent == NULL)
   {
-    fprintf(stderr, "***dozor-event.c: Unable to allocate memory for device event: %s\n", strerror(errno));
+    fprintf(stderr, "***device-event.c: Unable to allocate memory for device event: %s\n", strerror(errno));
     return 64;
   }
 
