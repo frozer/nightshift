@@ -23,6 +23,7 @@
 #define COMMAND_TOPIC "/nightshift/sites/%d/command"
 
 #define ACK_JSON "{\"version\": \"%s\", \"name\": \"nightshift\", \"agentID\": \"%s\", \"siteId\": %d}"
-#define PAYLOAD_JSON "{\"agentID\": \"%s\", \"report\": %s}"
+#define MESSAGE_JSON "{\"agentID\": \"%s\", \"message\": %s}"
+#define PAYLOAD_JSON "{\"deviceIp\":\"%s\",\"received\":\"%s\",\"payload\":%s}\n"
 
 #endif

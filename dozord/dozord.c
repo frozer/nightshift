@@ -68,13 +68,11 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
   char report[3072] = {0};
   char topic[256] = {0};
 
-  const char * eventTemplate = "{\"deviceIp\":\"%s\",\"received\":\"%s\",\"event\":%s}\n";
-
   ticks = time(NULL);
   
   sprintf(receivedTimestamp, "%.24s", ctime(&ticks));  
-  sprintf(eventReport, eventTemplate, conn->clientIp, receivedTimestamp, eventInfo->event);
-  sprintf(report, PAYLOAD_JSON, AGENT_ID, eventReport);
+  sprintf(eventReport, PAYLOAD_JSON, conn->clientIp, receivedTimestamp, eventInfo->event);
+  sprintf(report, MESSAGE_JSON, AGENT_ID, eventReport);
 
   switch(eventInfo->eventType)
   {
@@ -106,7 +104,7 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
   if (GlobalMQTTConnected)
   {
     mosquitto_publish(mosq, NULL, topic, strlen(report), report, 0, false);
-    printf(eventTemplate, conn->clientIp, receivedTimestamp, eventInfo->event);
+    printf(PAYLOAD_JSON, conn->clientIp, receivedTimestamp, eventInfo->event);
   }  
 }
 
