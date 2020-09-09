@@ -67,6 +67,7 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
   char eventReport[2048] = {0};
   char report[3072] = {0};
   char topic[256] = {0};
+  bool retainFlag = false;
 
   ticks = time(NULL);
   
@@ -86,6 +87,7 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
     
     case ENUM_EVENT_TYPE_KEEPALIVE:
       sprintf(topic, HEARBEAT_TOPIC, eventInfo->siteId);
+      retainFlag = true;
       break;
 
     case ENUM_EVENT_TYPE_ZONEINFO:
@@ -103,7 +105,7 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
 
   if (GlobalMQTTConnected)
   {
-    mosquitto_publish(mosq, NULL, topic, strlen(report), report, 0, false);
+    mosquitto_publish(mosq, NULL, topic, strlen(report), report, 0, retainFlag);
     printf(PAYLOAD_JSON, conn->clientIp, receivedTimestamp, eventInfo->event);
   }  
 }
@@ -241,7 +243,7 @@ void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
     pthread_t conn = 0;
     if (GlobalArgs.debug)
     {
-      printf("*** connect callback, rc=%d\n", result);
+      printf("*** connected to %s:%d, rc=%d\n", MQTT_HOST, MQTT_PORT, result);
     }
 
     GlobalMQTTConnected = true;
@@ -352,12 +354,17 @@ pthread_t startDozorListener()
 
 int initializeMQTT()
 {
-  char clientId[24];
+  char clientId[24] = {0};
+  char willTopic[28] = {0};
+  char willMessage[36] = {0};
+  bool retainFlag = true;
   int rc = 0;
+
   mosquitto_lib_init();
   
-  memset(clientId, 0, 24);
   sprintf(clientId, "nightshift_%d", getpid());
+  sprintf(willTopic, HEARBEAT_TOPIC, GlobalArgs.siteId);
+  sprintf(willMessage, WILL_MESSAGE, GlobalArgs.siteId);
 
   mosq = mosquitto_new(clientId, 1, 0);
   if (mosq)
@@ -365,15 +372,17 @@ int initializeMQTT()
     mosquitto_connect_callback_set(mosq, mqtt_connect_callback);
     mosquitto_message_callback_set(mosq, mqtt_message_callback);
 
+    mosquitto_will_set(mosq, willTopic, sizeof(willMessage), willMessage, 0, retainFlag);
+
     mosquitto_loop_start(mosq);
     rc = mosquitto_connect(mosq, MQTT_HOST, MQTT_PORT, 60);
     if (rc != MOSQ_ERR_SUCCESS)
     {
-      printf("*** Unable to connect to broker!\n");
+      printf("*** Unable to connect to broker at %s:%d!\n", MQTT_HOST, MQTT_PORT);
     } else {
       if (GlobalArgs.debug)
       {
-        printf("*** Connected to broker!\n");
+        printf("*** Connected to broker at %s:%d!\n", MQTT_HOST, MQTT_PORT);
       }
     }
 
