@@ -98,6 +98,10 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
       sprintf(topic, SECTION_TOPIC, eventInfo->siteId, eventInfo->sourceId);
       break;
 
+    case ENUM_EVENT_TYPE_ARM_DISARM:
+      sprintf(topic, ARM_DISARM_TOPIC, eventInfo->siteId);
+      retainFlag = true;
+      break;
 
     default:    
       sprintf(topic, EVENT_TOPIC, eventInfo->siteId);

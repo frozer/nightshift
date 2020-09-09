@@ -159,7 +159,7 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
       }
       strcat(res, getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
       sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, USER_DATA_POSITION, deviceEvent->dataLength));
-      eventInfo->eventType = ENUM_EVENT_TYPE_USERAUTHINFO;
+      eventInfo->eventType = ENUM_EVENT_TYPE_ARM_DISARM;
       break;
 
     // SecurityEvent
