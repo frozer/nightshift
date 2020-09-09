@@ -19,6 +19,8 @@
 #include <stdio.h>
 #include "event.h"
 
+extern unsigned short int debugMode;
+
 const char events[EVENT_COUNT][MAX_EVENT_NAME_LENGTH] = {
   "UnknownEvent",
 "DeviceConfiguration", "ManualReset", "ZoneDisarm", "UnknownEvent", "UnknownEvent", 
@@ -36,12 +38,16 @@ const char events[EVENT_COUNT][MAX_EVENT_NAME_LENGTH] = {
 "SystemOverfreeze", "UnknownEvent", "SystemOverheat", "RemoteCommandHandled" 
 };
 
-const char cmdResults[8][32] = {
+const char cmdResults[COMMAND_RESULT_COUNT][MAX_COMMAND_RESULT_NAME_LENGTH] = {
   "Unknown", "Success", "Not implemented", "Incorrect parameter(s)", "Busy", "Unable to execute", "Already executed", "No access"
 };
 
-char* getKeepAliveEvent(uint8_t site, DeviceInfo* info)
+void getKeepAliveEvent(EventInfo* eventInfo, uint8_t site, DeviceInfo* info)
 {
+  if (eventInfo == NULL) {
+    return;
+  }
+
   const char * template = "{ \
 \"site\":%d,\"typeId\":null,\
 \"event\":\"KeepAliveEvent\",\
@@ -66,11 +72,19 @@ char* getKeepAliveEvent(uint8_t site, DeviceInfo* info)
   }
   strcat(res, "\"}");
 
-  return res;
+  eventInfo->eventType = ENUM_EVENT_TYPE_KEEPALIVE;
+  sprintf(eventInfo->event, "%s", res);
+  eventInfo->siteId = site;
+  free(res);
 }
 
-char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent)
+void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent* deviceEvent)
 {
+  if (eventInfo == NULL) {
+    return;
+  }
+  eventInfo->eventType = ENUM_EVENT_TYPE_COMMONEVENT;
+
   const char * template = "{\"site\":%d,\"typeId\":%d,\"timestamp\":\"%s\",\"data\":\"";
   char * timestamp = malloc(sizeof(char) * 25);
   char * res = malloc(sizeof(char) * 1024);
@@ -100,7 +114,14 @@ char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent)
     case 0xc:
     case 0xd:
     case 0xf:
+      if (debugMode)
+      {
+        printf("***event.c: handle zone event\n");
+      }
+
       strcat(res, getZoneEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_ZONEINFO;
       break;
 
     // SectionEvent
@@ -110,42 +131,81 @@ char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent)
     case 0x34:
     case 0x35:
     case 0x37:
+      if (debugMode)
+      {
+        printf("***event.c: handling section event\n");
+      }
       strcat(res, getSectionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_SECTIONINFO;
       break;
 
     // AuthenticationEvent
     case 0x1b:
+      if (debugMode)
+      {
+        printf("***event.c: handling authentication event\n");
+      }
       strcat(res, getAuthEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
       break;
 
     // Arm / Disarm by user
     case 0x39:
     case 0x3a:
+      if (debugMode)
+      {
+        printf("***event.c: handling arm/disarm event\n");
+      }
       strcat(res, getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, USER_DATA_POSITION, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_ARM_DISARM;
       break;
 
     // SecurityEvent
     case 0x19:    
     case 0x29:    
     case 0x3b:
+      if (debugMode)
+      {
+        printf("***event.c: handling security event\n");
+      }
       strcat(res, getCommonEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength, SECURITY_EVENT_SCOPE));
       break;
 
     // ReportEvent
     case 0x25:
+      if (debugMode)
+      {
+        printf("***event.c: handling report event\n");
+      }
       strcat(res, getReportEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_REPORT;
       break;
 
     // Remote Command Executed
     case 0x3f:
+      if (debugMode)
+      {
+        printf("***event.c: handling command result event (%s...)\n", res);
+      }
       strcat(res, getCommandEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      eventInfo->eventType = ENUM_EVENT_TYPE_COMMAND_RESPONSE;
       break;
 
     case 0x1:
+      if (debugMode)
+      {
+        printf("***event.c: handling firmware version event\n");
+      }
       strcat(res, getFirmwareVersionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
       break;
 
     default: 
+      if (debugMode)
+      {
+        printf("***event.c: handling non-specific event\n");
+      }
       strcat(res, getCommonEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength, COMMON_EVENT_SCOPE));
       break;
   }
@@ -155,7 +215,9 @@ char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent)
   free(timestamp);
   free(temp);
   
-  return res;
+  sprintf(eventInfo->event, "%s", res);
+  eventInfo->siteId = site;
+  free(res);
 }
 
 static char * getFirmwareVersionEventData(uint8_t type, uint8_t * data, uint8_t len)
@@ -176,10 +238,25 @@ static char * getCommandEventData(uint8_t type, uint8_t * data, uint8_t len)
   char * template = ",\"event\":\"%s\",\"scope\":\"Common\",\"commandId\":%s,\"commandResultId\":%s,\"commandResult\":\"%s\"";
   char * res;
   char * cmdResult = getData(data, COMMAND_RESULT_DATA_POSITION, len);
-  char * cmdResultName = (char *) cmdResults[strtol(cmdResult, 0, 10)];
+  if (debugMode)
+  {
+    printf("***event.c(getCommandEventData) command result %s, position - %d, length - %d\n", cmdResult, COMMAND_RESULT_DATA_POSITION, len);
+  }
 
-  res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 4));
-  sprintf(res, template, getEventNameByType(type), getData(data, DEFAULT_DATA_POSITION, len), cmdResult, cmdResultName); 
+  char * cmdResultName = (char *) cmdResults[strtol(cmdResult, 0, 10)];  
+  if (debugMode)
+  {
+    printf("***event.c(getCommandEventData) command result name %s\n", cmdResultName);
+  }
+
+  char * cmdId = getData(data, DEFAULT_DATA_POSITION, len);
+  if (debugMode)
+  {
+    printf("***event.c(getCommandEventData) command id %s, position - %d, length - %d\n", cmdId, DEFAULT_DATA_POSITION, len);
+  }
+
+  res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + MAX_COMMAND_RESULT_NAME_LENGTH + 4));
+  sprintf(res, template, getEventNameByType(type), cmdId, cmdResult, cmdResultName); 
 
   return res;
 }

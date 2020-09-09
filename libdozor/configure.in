@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libdozor], [1.0.1], [n.halcyon@gmail.com])
+AC_INIT([libdozor], [1.0.2], [n.halcyon@gmail.com])
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([dozor.h])
 AC_CONFIG_HEADERS([config.h])
@@ -11,14 +11,19 @@ AM_PROG_LIBTOOL
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CC_STDC
 AC_PROG_MAKE_SET
 
 AC_HEADER_STDC
 
 # Checks for libraries.
+AC_CHECK_LIB(mosquitto,mosquitto_publish, [], [
+  echo "Error! You need to have libmosquitto around."
+  exit -1
+])
 
 # Checks for header files.
-AC_CHECK_HEADERS([inttypes.h stdint.h stdlib.h string.h unistd.h byteswap.h])
+AC_CHECK_HEADERS([inttypes.h stdint.h stdlib.h string.h unistd.h byteswap.h mosquitto.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T

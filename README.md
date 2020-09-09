@@ -3,6 +3,7 @@
 
 * логирование и разбор сообщений от прибора
 * передачу команд на прибор (список рабочих команд приведен ниже)
+* отправка сообщений по протоколу MQTT на настроенный брокер MQTT (список топиков см.ниже)
 
 ## Настройка прибора
 Настройка прибора выполняется согласно руководства пользователя. Указываются IP-адрес, порт на котором работает сервер и ключ связи для обеспечения шифрования сообщений.
@@ -10,16 +11,13 @@
 ## Использование
 Выполняется запуск демона dozord с параметрами:
 
+* -s - ИД устройства
 * -k - ключ связи
 * -p - порт сервера, по умолчанию - 1111
-* -c - файл команд, по умолчанию commands.txt
 * -d - режим отладки
 * -h - вывод справки
 
-После подключения устройства выполняется вывод полученных сообщений на экран. Отправка команд осуществляется путем записи команд в файл commands.txt:
-```
-echo "REBOOT:" > commands.txt
-```
+После подключения устройства выполняется вывод полученных сообщений на экран. Отправка команд осуществляется путем публикации сообщения с текстом команды в соответствующий топик
 
 ## Схема работы
 
@@ -103,7 +101,7 @@ struct message {
 43|0x2b|SectionDisarm|SectionEvent|Раздел «Х» снят с охраны|
 50|0x32|SectionArm|SectionEvent|Раздел «Х» поставлен на охрану|
 51|0x33|SectionGood|SectionEvent|Отмена всех тревог раздела|
-52|0x34|SectionFail|UnknownEvent|Ошибка взятия раздела «Х»|
+52|0x34|SectionFail|SectionEvent|Ошибка взятия раздела «Х»|
 53|0x35|SectionWarning|SectionEvent|Внимание, раздел «Х»|
 55|0x37|SectionAlarm|SectionEvent|Тревога раздела «Х»|
 56|0x38|SystemFailure|CommonEvent|Неисправность системы|
@@ -214,14 +212,107 @@ Result ID|Result Name
 ## Проверены на версии 4.29
 * Постановка на сигнализацию - "ARM:"
 * Постановка на сигнализацию выбранного раздела "2" - "ARM:&2"
-* Снятие с сигнализации - "OFF:" (01000000 - свапнутый ИД команды)
+* Снятие с сигнализации - "OFF:"
 * Снятие с сигнализации выбранного раздела "2" - "OFF:&2"
 * Перезагрузка устройства - "REBOOT:"
 * Включить зону - "ZON:11"
 * Выключить зону - "ZOFF:11"
 * Переключить реле - "OUT:1, 0|1|2", где (0 - выключить, 1 - включить, 2 - инвертировать)
+* Показать на экран сообщение - "SHOW: MessageToShow"
 
 ## Не работают в версии 4.29
 * Отправка уровня сигнала извещателей (упоминается в истории изменений для версии 4.25) - BRIMS
 * Запрос кадра из архива видеокадров (упоминается в истории изменений для версии 4.25) - CAM 
 * Запрос состояния (упоминается в истории изменений для версии 4.25) - TEST
+
+# Поддержка MQTT
+## Топики для публикации
+
+* /nightshift/notify - при подключении к брокеру MQTT. Формат сообщения:
+```
+{\"version\": \"%s\", \"name\": \"nightshift\", \"agentID\": \"%s\", \"siteId\": %d}
+```
+* /nightshift/sites/%d/reports - ежесуточный отчет устройстваю. Формат сообщения:
+```
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Jul 22 09:32:48 2020","payload":{"site":1,"typeId":37,"timestamp":"Thu Nov 28 09:00:00 2019","data":"0210000000","temp":16,"event":"Report","scope":"Common"}}}
+```
+* /nightshift/sites/%d/events - события от устройства. Формат сообщения:
+```
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Sep  9 12:42:19 2020","payload":{"site":1,"typeId":32,"timestamp":"Sun Dec  8 13:51:20 2019","data":"B71F","event":"PowerGood","scope":"Common"}}
+}
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Sep  9 12:42:19 2020","payload":{"site":1,"typeId":31,"timestamp":"Sun Dec  8 13:53:31 2019","data":"A710","event":"MainPowerFail","scope":"Common"}}
+}
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Sep  9 12:42:19 2020","payload":{"site":1,"typeId":16,"timestamp":"Sun Dec  8 13:54:48 2019","data":"0E1D","event":"FallbackPowerRecovered","scope":"Common"}}
+}
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Sep  9 12:42:19 2020","payload":{"site":1,"typeId":29,"timestamp":"Mon Jan  1 03:00:00 2001","data":"7F01","event":"FallbackPowerFailed","scope":"Common"}}
+}
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Sep  9 12:42:19 2020","payload":{"site":1,"typeId":1,"timestamp":"Mon Jan  1 03:00:00 2001","data":"1D043A","event":"DeviceConfiguration","scope":"Common","version":"4.29"}}
+```
+* /nightshift/sites/%d/status - состояние устройства на охране/снят с охраны
+```
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Jul 22 09:32:48 2020","payload":{"site":1,"typeId":3,"timestamp":"Mon Jan  1 05:00:33 2001","data":"1121","zone":17,"event":"ZoneDisarm","scope":"Zone"}}}
+```
+* /nightshift/sites/%d/zones/%d/events - события от устройства по выбранной зоне
+```
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Sep  9 12:45:15 2020","payload":{"site":1,"typeId":10,"timestamp":"Mon Jan  1 03:00:00 2001","data":"1332","zone":19,"event":"ZoneArm","scope":"Zone"}}
+}
+```
+* /nightshift/sites/%d/sections/%d/events - события от устройства по выбранному разделу
+```
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Sep  9 12:46:11 2020","payload":{"site":1,"typeId":51,"timestamp":"Wed Dec 29 16:01:21 2038","data":"0121","section":1,"event":"SectionGood","scope":"Section"}}
+}
+```
+* /nightshift/sites/%d/notify - heartbeat-события от устройства
+```
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Jul 22 09:35:24 2020","payload":{ "site":1,"typeId":null,"event":"KeepAliveEvent","scope":"KeepAlive","channel":0,"sim":0,"voltage":17.00,"signal":0,"extraId":1,"extraValue":20,"data":"0000B2401400"}}}
+```
+* /nightshift/sites/%d/commandresults - результат выполнения команды
+
+## Топик для управления
+
+* /nightshift/sites/%d/command - команда указывается в теле сообщения
+
+## Типы сообщений с привязкой к топику
+#|Event Type ID|Event Type|Event Scope|Topic|
+:---:|:---:|:---:|:---:|---|
+1|0x1|DeviceConfiguration|ConfigurationEvent|/nightshift/sites/%d/events|
+2|0x2|ManualReset|CommonEvent|/nightshift/sites/%d/events|
+3|0x3|ZoneDisarm|ZoneEvent|/nightshift/sites/%d/zones/%d/events|
+9|0x9|ZoneWarning|ZoneEvent|/nightshift/sites/%d/zones/%d/events|
+10|0xa|ZoneArm|ZoneEvent|/nightshift/sites/%d/zones/%d/events|
+11|0xb|ZoneGood|ZoneEvent|/nightshift/sites/%d/zones/%d/events|
+12|0xc|ZoneFail|ZoneEvent|/nightshift/sites/%d/zones/%d/events|
+13|0xd|ZoneDelayedAlarm|ZoneEvent|/nightshift/sites/%d/zones/%d/events|
+15|0xf|ZoneAlarm|ZoneEvent|/nightshift/sites/%d/zones/%d/events|
+16|0x10|FallbackPowerRecovered|CommonEvent|/nightshift/sites/%d/events|
+18|0x12|FactoryReset|CommonEvent|/nightshift/sites/%d/events|
+19|0x13|FirmwareUpgradeInProgress|CommonEvent|/nightshift/sites/%d/events|
+20|0x14|FirmwareUpgradeFail|CommonEvent|/nightshift/sites/%d/events|
+21|0x15|TestEvent|CommonEvent|/nightshift/sites/%d/events|
+22|0x16|TestEvent|CommonEvent|/nightshift/sites/%d/events|
+23|0x17|CoverOpened|CommonEvent|/nightshift/sites/%d/events|
+24|0x18|CoverClosed|CommonEvent|/nightshift/sites/%d/events|
+25|0x19|OffenceEvent|SecurityEvent|/nightshift/sites/%d/events|
+27|0x1b|UserAuth|AuthenticationEvent|/nightshift/sites/%d/events|
+29|0x1d|FallbackPowerFailed|CommonEvent|/nightshift/sites/%d/events|
+30|0x1e|FailbackPowerActivated|CommonEvent|/nightshift/sites/%d/events|
+31|0x1f|MainPowerFail|CommonEvent|/nightshift/sites/%d/events|
+32|0x20|PowerGood|CommonEvent|/nightshift/sites/%d/events|
+37|0x25|Report|ReportEvent|/nightshift/sites/%d/reports|
+38|0x26|FirmwareUpgradeRequest|CommonEvent|/nightshift/sites/%d/events|
+39|0x27|CardActivated|GSMEvent|/nightshift/sites/%d/events|
+40|0x28|CardRemoved|GSMEvent|/nightshift/sites/%d/events|
+41|0x29|CodeSeqAttack|SecurityEvent|/nightshift/sites/%d/events|
+43|0x2b|SectionDisarm|SectionEvent|/nightshift/sites/%d/sections/%d/events|
+50|0x32|SectionArm|SectionEvent|/nightshift/sites/%d/sections/%d/events|
+51|0x33|SectionGood|SectionEvent|/nightshift/sites/%d/sections/%d/events|
+52|0x34|SectionFail|SectionEvent|/nightshift/sites/%d/sections/%d/events|
+53|0x35|SectionWarning|SectionEvent|/nightshift/sites/%d/sections/%d/events|
+55|0x37|SectionAlarm|SectionEvent|/nightshift/sites/%d/sections/%d/events|
+56|0x38|SystemFailure|CommonEvent|/nightshift/sites/%d/events|
+57|0x39|SystemDisarm|SecurityEvent|/nightshift/sites/%d/status|
+58|0x3a|SystemArm|SecurityEvent|/nightshift/sites/%d/status|
+59|0x3b|SystemMaintenance|SecurityEvent|/nightshift/sites/%d/events|
+60|0x3c|SystemOverfreeze|ReportEvent|/nightshift/sites/%d/events|
+62|0x3e|SystemOverheat|ReportEvent|/nightshift/sites/%d/events|
+63|0x3f|RemoteCommandHandled|SystemEvent|/nightshift/sites/%d/commandresults|

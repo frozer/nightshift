@@ -2,7 +2,7 @@
 .SH NAME
 dozord \- Astra Dozor Security System protocol daemon
 .SH SYNOPSIS
-dozord -k <pincode> [\-p 1111] [\-c commands.txt] [\-d] [\-h]
+dozord -s <site id> -k <pincode> [\-p 1111] [\-d] [\-h]
 
 .SH DESCRIPTION
 dozord is an free implementation of the Astra Dozor Security
@@ -10,12 +10,12 @@ System server to collect security events and control Astra
 Dozor Box
 
 .SH "COMMAND-LINE OPTIONS"
+.IP -s
+Astra Box device ID
 .IP -k
 Astra Box device pincode
 .IP -p
 listen specified port, 1111 by default
-.IP -c
-watch this file for commands, uses commands.txt by default
 .IP -d
 runs in debug mode, highly verbose (will report
 every request and commands performed by the server)

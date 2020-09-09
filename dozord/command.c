@@ -95,3 +95,22 @@ void readCommandsFromFile(Commands * commands, char * fn, const unsigned short i
     exit(-1);
   }
 }
+
+void readCommandsFromString(Commands * commands, char * command, const unsigned short int debugMode)
+{
+  int i = commands->length;
+  if (i >= MAX_COMMAND_QUEUE_LENGTH)
+  {
+    i = 0;
+  }
+
+  commands->length = i + 1;
+  
+  sprintf(commands->items[i].value, "%s", command);
+  commands->items[i].done = 0;
+  commands->items[i].id = i + 1;
+
+  if (debugMode) {
+    printf("***commands.c: new command - %s\n", commands->items[i].value);
+  }
+}

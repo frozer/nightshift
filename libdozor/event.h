@@ -23,7 +23,10 @@
 #include "utils.h"
 
 #define EVENT_COUNT 64
+#define EVENT_TIMESTAMP_LENGTH 25
 #define MAX_EVENT_NAME_LENGTH 25
+#define COMMAND_RESULT_COUNT 8
+#define MAX_COMMAND_RESULT_NAME_LENGTH 32
 #define COMMON_EVENT_SCOPE "Common"
 #define AUTH_EVENT_SCOPE "Auth"
 #define USER_EVENT_SCOPE "User"
@@ -36,15 +39,33 @@
 #define VERSION_DATA_POSITION 1
 #define VERSION_MASK 0x7
 
+#define ENUM_EVENT_TYPE_COMMONEVENT 1
+#define ENUM_EVENT_TYPE_KEEPALIVE 2
+#define ENUM_EVENT_TYPE_COMMAND_RESPONSE 4
+#define ENUM_EVENT_TYPE_REPORT 8
+#define ENUM_EVENT_TYPE_ZONEINFO 16
+#define ENUM_EVENT_TYPE_SECTIONINFO 32
+#define ENUM_EVENT_TYPE_USERAUTHINFO 64
+#define ENUM_EVENT_TYPE_ARM_DISARM 96
+
+typedef struct {
+  char event[1024];
+  // ENUM_EVENT_TYPE_*
+  unsigned int eventType;
+  // Event source id depends on event type, might be - zone, section, user
+  char sourceId[4];
+  unsigned int siteId;
+} EventInfo;
+
 typedef struct COMMON_EVENT {
   uint8_t typeId;
   uint8_t site;
-  char timestamp[25];
+  char timestamp[EVENT_TIMESTAMP_LENGTH];
   char data[256];
 } CommonEvent;
 
-char* getKeepAliveEvent(uint8_t site, DeviceInfo* info);
-char* convertDeviceEventToCommon(uint8_t site, DeviceEvent* deviceEvent);
+void getKeepAliveEvent(EventInfo* eventInfo, uint8_t site, DeviceInfo* info);
+void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent* deviceEvent);
 static char * getFirmwareVersionEventData(uint8_t type, uint8_t * data, uint8_t len);
 static char * getCommandEventData(uint8_t type, uint8_t * data, uint8_t len);
 static char * getReportEventData(uint8_t type, uint8_t * data, uint8_t len);
