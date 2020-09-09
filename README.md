@@ -287,7 +287,7 @@ Result ID|Result Name
 16|0x10|FallbackPowerRecovered|CommonEvent|/nightshift/sites/%d/events|
 18|0x12|FactoryReset|CommonEvent|/nightshift/sites/%d/events|
 19|0x13|FirmwareUpgradeInProgress|CommonEvent|/nightshift/sites/%d/events|
-20|0x14|FirmwareUpgradeFail|/nightshift/sites/%d/events|
+20|0x14|FirmwareUpgradeFail|CommonEvent|/nightshift/sites/%d/events|
 21|0x15|TestEvent|CommonEvent|/nightshift/sites/%d/events|
 22|0x16|TestEvent|CommonEvent|/nightshift/sites/%d/events|
 23|0x17|CoverOpened|CommonEvent|/nightshift/sites/%d/events|
