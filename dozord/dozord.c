@@ -92,10 +92,12 @@ void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
 
     case ENUM_EVENT_TYPE_ZONEINFO:
       sprintf(topic, ZONE_TOPIC, eventInfo->siteId, eventInfo->sourceId);
+      retainFlag = true;
       break;
 
     case ENUM_EVENT_TYPE_SECTIONINFO:
       sprintf(topic, SECTION_TOPIC, eventInfo->siteId, eventInfo->sourceId);
+      retainFlag = true;
       break;
 
     case ENUM_EVENT_TYPE_ARM_DISARM:
