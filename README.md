@@ -250,7 +250,8 @@ Result ID|Result Name
 ```
 * /nightshift/sites/%d/status - состояние устройства на охране/снят с охраны
 ```
-{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Jul 22 09:32:48 2020","payload":{"site":1,"typeId":3,"timestamp":"Mon Jan  1 05:00:33 2001","data":"1121","zone":17,"event":"ZoneDisarm","scope":"Zone"}}}
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"213.87.240.135","received":"Sat Sep 12 12:24:29 2020","payload":{"site":1,"typeId":57,"timestamp":"Sat Sep 12 12:24:28 2020","data":"F800000103","user":1,"event":"SystemDisarm","scope":"Security"}}
+{"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"213.87.240.135","received":"Sat Sep 12 12:24:29 2020","payload":{"site":1,"typeId":57,"timestamp":"Sat Sep 12 12:24:28 2020","data":"F800000103","user":1,"event":"SystemArm","scope":"Security"}}
 ```
 * /nightshift/sites/%d/zones/%d/events - события от устройства по выбранной зоне
 ```
