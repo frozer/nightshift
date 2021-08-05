@@ -369,7 +369,7 @@ int initializeMQTT()
   mosquitto_lib_init();
   
   sprintf(clientId, "nightshift_%d", getpid());
-  sprintf(willTopic, HEARBEAT_TOPIC, GlobalArgs.siteId);
+  sprintf(willTopic, DISCONNECTED_TOPIC, GlobalArgs.siteId);
   sprintf(willMessage, WILL_MESSAGE, GlobalArgs.siteId);
 
   mosq = mosquitto_new(clientId, 1, 0);
