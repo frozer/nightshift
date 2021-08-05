@@ -268,6 +268,7 @@ Result ID|Result Name
 {"agentID": "80d7be61-d81d-4aac-9012-6729b6392a89", "message": {"deviceIp":"127.0.0.1","received":"Wed Jul 22 09:35:24 2020","payload":{ "site":1,"typeId":null,"event":"KeepAliveEvent","scope":"KeepAlive","channel":0,"sim":0,"voltage":17.00,"signal":0,"extraId":1,"extraValue":20,"data":"0000B2401400"}}}
 ```
 * /nightshift/sites/%d/commandresults - результат выполнения команды
+* /nightshift/sites/%d/disconnnected - топик для публикации MQTT WILL сообщения
 
 ## Топик для управления
 

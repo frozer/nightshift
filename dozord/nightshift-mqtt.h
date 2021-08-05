@@ -34,7 +34,8 @@
 #define ZONE_TOPIC "/nightshift/sites/%d/zones/%s/events"
 // publish
 #define COMMAND_RESULT_TOPIC "/nightshift/sites/%d/commandresults"
-
+// publish
+#define DISCONNECTED_TOPIC "/nightshift/sites/%d/disconnected"
 // publish
 #define ARM_DISARM_TOPIC "/nightshift/sites/%d/status"
 

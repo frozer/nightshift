@@ -28,6 +28,7 @@
 #include <sys/inotify.h>
 #include <stdbool.h>
 #include <mosquitto.h>
+#include <signal.h>
 #include <dozor.h>
 #include "answer.h"
 #include "command.h"
@@ -59,6 +60,15 @@ struct mosquitto * mosq;
 int mosqConnectorId = 0;
 bool GlobalMQTTConnected = false;
 pthread_t GlobalReconnectThread = 0;
+
+volatile sig_atomic_t exitRequested = 0;
+
+void term(int signum)
+{
+   exitRequested = 1;
+   
+   mosquitto_loop_stop(mosq, &(int){1});
+}
 
 void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
 {
@@ -204,8 +214,9 @@ void* mqtt_thread_reconnect(void* args)
 	mosq = (struct mosquitto*)args;
 	sleep_time += (10 - (rand() % 20));
 	sleep(sleep_time);
-	if(!GlobalMQTTConnected)
+	if(!GlobalMQTTConnected && !exitRequested)
 		mosquitto_reconnect_async(mosq);
+
 	pthread_exit(0);
 	return 0;
 }
@@ -281,12 +292,20 @@ void* dozor_thread_listener()
   pthread_t watcherWorker;
   unsigned short int i = 0;
 
-// socket create and verification 
+  // socket create and verification 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0); 
 	if (sockfd == -1) { 
 		fprintf(stderr, "Socket create failed: %s\n", strerror(errno));
 		exit(-1); 
 	}
+
+  // set sock options
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
+  {
+    fprintf(stderr, "Socket options setup failed: %s\n", strerror(errno));
+    exit(-1);
+  }
+
 	bzero(&servaddr, sizeof(servaddr)); 
 
 	// assign IP, PORT
@@ -306,7 +325,7 @@ void* dozor_thread_listener()
 		exit(-1); 
 	}
 
-  while(true)
+  while(!exitRequested)
   {
     // Accept the data packet from client and verification 
     newsockfd = accept(sockfd, (SA*)&cli, &len);
@@ -361,7 +380,7 @@ pthread_t startDozorListener()
 int initializeMQTT()
 {
   char clientId[24] = {0};
-  char willTopic[28] = {0};
+  char willTopic[36] = {0};
   char willMessage[36] = {0};
   bool retainFlag = true;
   int rc = 0;
@@ -369,7 +388,7 @@ int initializeMQTT()
   mosquitto_lib_init();
   
   sprintf(clientId, "nightshift_%d", getpid());
-  sprintf(willTopic, HEARBEAT_TOPIC, GlobalArgs.siteId);
+  sprintf(willTopic, DISCONNECTED_TOPIC, GlobalArgs.siteId);
   sprintf(willMessage, WILL_MESSAGE, GlobalArgs.siteId);
 
   mosq = mosquitto_new(clientId, 1, 0);
@@ -403,6 +422,12 @@ int main(int argc, char **argv)
   int opt;
   char * commandFilename;
   pthread_t watcherWorker;
+
+  // handle SIG
+  struct sigaction action;
+  memset(&action, 0, sizeof(action));
+  action.sa_handler = term;
+  sigaction(SIGTERM, &action, NULL);
 
   GlobalArgs.port = DEFAULT_PORT;
   GlobalArgs.siteId = 0;
