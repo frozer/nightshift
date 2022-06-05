@@ -286,9 +286,9 @@ void* dozor_thread_listener()
   int sockfd, newsockfd, pid, rc; 
   int port;
   char clientIp[INET_ADDRSTRLEN];
-	struct sockaddr_in servaddr = {0}
+	struct sockaddr_in servaddr = {0};
   
-  struct cli = {0};
+  struct sockaddr_in cli = {0};
   socklen_t len;
 
   connectionInfo infos[5];
