@@ -283,10 +283,14 @@ void mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosqu
 
 void* dozor_thread_listener()
 {
-  int sockfd, newsockfd, len, pid, rc; 
+  int sockfd, newsockfd, pid, rc; 
   int port;
   char clientIp[INET_ADDRSTRLEN];
-	struct sockaddr_in servaddr, cli; 
+	struct sockaddr_in servaddr = {0};
+  
+  struct sockaddr_in cli = {0};
+  socklen_t len;
+
   connectionInfo infos[5];
   pthread_t connectionWorkers[5];
   pthread_t watcherWorker;
@@ -327,6 +331,8 @@ void* dozor_thread_listener()
 
   while(!exitRequested)
   {
+    len = sizeof(cli);
+
     // Accept the data packet from client and verification 
     newsockfd = accept(sockfd, (SA*)&cli, &len);
 
