@@ -22,24 +22,145 @@
 extern unsigned short int debugMode;
 
 const char events[EVENT_COUNT][MAX_EVENT_NAME_LENGTH] = {
-  "UnknownEvent",
-"DeviceConfiguration", "ManualReset", "ZoneDisarm", "UnknownEvent", "UnknownEvent", 
-"UnknownEvent", "UnknownEvent", "UnknownEvent", "ZoneWarning", "ZoneArm", 
-"ZoneGood", "ZoneFail", "ZoneDelayedAlarm", "UnknownEvent", "ZoneAlarm", 
-"FallbackPowerRecovered", "UnknownEvent", "FactoryReset", "FirmwareUpgradeInProgress", 
-"FirmwareUpgradeFail", "KeepAliveEvent", "KeepAliveEvent", "CoverOpened", "CoverClosed", 
-"OffenceEvent", "UnknownEvent", "UserAuth", "UnknownEvent", "FallbackPowerFailed", 
-"FailbackPowerActivated", "MainPowerFail", "PowerGood", "UnknownEvent", "UnknownEvent", 
-"UnknownEvent", "UnknownEvent", "Report", "FirmwareUpgradeRequest", "CardActivated", 
-"CardRemoved", "CodeSeqAttack", "UnknownEvent", "SectionDisarm", "UnknownEvent", 
-"UnknownEvent", "UnknownEvent", "UnknownEvent", "UnknownEvent", "UnknownEvent", 
-"SectionArm", "SectionGood", "SectionFail", "SectionWarning", "UnknownEvent", 
-"SectionAlarm", "SystemFailure", "SystemDisarm", "SystemArm", "SystemMaintenance", 
-"SystemOverfreeze", "UnknownEvent", "SystemOverheat", "RemoteCommandHandled" 
+// 0x0
+"UnknownEvent-0x0",
+// 0x1
+"DeviceConfiguration",
+// 0x2
+"ManualReset",
+// 0x3
+"ZoneDisarm",
+// 0x4
+"UnknownEvent-0x4",
+// 0x5
+"UnknownEvent-0x5", 
+// 0x6
+"UnknownEvent-0x6",
+// 0x7
+"UnknownEvent-0x7",
+// 0x8
+"UnknownEvent-0x8",
+// 0x9
+"ZoneWarning",
+// 0xa
+"ZoneArm", 
+// 0xb
+"ZoneGood",
+// 0xc
+"ZoneFail",
+// 0xd
+"ZoneDelayedAlarm",
+// 0xe
+"UnknownEvent-0xe",
+// 0xf
+"ZoneAlarm", 
+// 0x10
+"FallbackPowerRecovered",
+// 0x11
+"UnknownEvent-0x11",
+// 0x12
+"FactoryReset",
+// 0x13
+"FirmwareUpgradeInProgress", 
+// 0x14
+"FirmwareUpgradeFail",
+// 0x15
+"KeepAliveEvent",
+// 0x16
+"KeepAliveEvent",
+// 0x17
+"CoverOpened",
+// 0x18
+"CoverClosed", 
+// 0x19
+"OffenceEvent",
+// 0x1a
+"UnknownEvent-0x1a",
+// 0x1b
+"UserAuth",
+// 0x1c
+"UnknownEvent-0x1c",
+// 0x1d
+"FallbackPowerFailed", 
+// 0x1e
+"FailbackPowerActivated",
+// 0x1f
+"MainPowerFail",
+// 0x20
+"PowerGood",
+// 0x21
+"UnknownEvent-0x21",
+// 0x22
+"UnknownEvent-0x22", 
+// 0x23
+"UnknownEvent-0x23",
+// 0x24
+"UnknownEvent-0x24",
+// 0x25
+"Report",
+// 0x26
+"FirmwareUpgradeRequest",
+// 0x27
+"CardActivated", 
+// 0x28
+"CardRemoved",
+// 0x29
+"CodeSeqAttack",
+// 0x2a
+"UnknownEvent-0x2a",
+// 0x2b
+"SectionDisarm",
+// 0x2c
+"UnknownEvent-0x2c", 
+// 0x2d
+"UnknownEvent-0x2d",
+// 0x2e
+"UnknownEvent-0x2e",
+// 0x2f
+"UnknownEvent-0x2f",
+// 0x30
+"UnknownEvent-0x30",
+// 0x31
+"UnknownEvent-0x31", 
+// 0x32
+"SectionArm",
+// 0x33
+"SectionGood",
+// 0x34
+"SectionFail",
+// 0x35
+"SectionWarning",
+// 0x36
+"UnknownEvent-0x36", 
+// 0x37
+"SectionAlarm",
+// 0x38
+"SystemFailure",
+// 0x39
+"SystemDisarm",
+// 0x3a
+"SystemArm",
+// 0x3b
+"SystemMaintenance", 
+// 0x3c
+"SystemOverfreeze",
+// 0x3d
+"UnknownEvent-0x3d",
+// 0x3e
+"SystemOverheat",
+// 0x3f
+"RemoteCommandHandled" 
 };
 
 const char cmdResults[COMMAND_RESULT_COUNT][MAX_COMMAND_RESULT_NAME_LENGTH] = {
-  "Unknown", "Success", "Not implemented", "Incorrect parameter(s)", "Busy", "Unable to execute", "Already executed", "No access"
+  "Unknown",
+  "Success",
+  "Not implemented",
+  "Incorrect parameter(s)",
+  "Busy",
+  "Unable to execute",
+  "Already executed",
+  "No access"
 };
 
 void getKeepAliveEvent(EventInfo* eventInfo, uint8_t site, DeviceInfo* info)
