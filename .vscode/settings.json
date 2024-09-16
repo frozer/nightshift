@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "nightshift-mqtt.h": "c",
+    "answer.h": "c"
+  }
+}
