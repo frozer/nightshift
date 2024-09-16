@@ -19,6 +19,8 @@
 
 #define MQTT_HOST "localhost"
 #define MQTT_PORT 1883
+#define MQTT_KEEPALIVE_SEC 60
+#define MQTT_RECONNECT_SEC 30
 
 // publish
 #define ACK_TOPIC "/nightshift/notify"
@@ -42,9 +44,27 @@
 // subscribe
 #define COMMAND_TOPIC "/nightshift/sites/%d/command"
 
-#define ACK_JSON "{\"version\": \"%s\", \"name\": \"nightshift\", \"agentID\": \"%s\", \"siteId\": %d}"
-#define MESSAGE_JSON "{\"agentID\": \"%s\", \"message\": %s}"
+#define ACK_JSON "{\"name\":\"nightshift\",\"agentID\":\"%s\",\"siteId\":%d}" // {"name":"nightshift","agentId":"80d7be61-d81d-4aac-9012-6729b6392a89","siteId":4294967295}
+#define MESSAGE_JSON "{\"agentID\": \"%s\",\"message\": %s}"
 #define PAYLOAD_JSON "{\"deviceIp\":\"%s\",\"received\":\"%s\",\"payload\":%s}\n"
 
 #define WILL_MESSAGE "Guard device at site %d is offline"
+
+struct MQTTConfig {
+  char host[50];                // MQTT_HOST
+  unsigned int port;          // MQTT_PORT 
+  unsigned int siteId;        // GlobalArgs.siteId
+  char agentId[36];
+  unsigned int debug;
+};
+
+struct MQTTThreadPayload {
+  struct mosquitto * mosq;
+  struct MQTTConfig * mqttConfig;
+};
+
+int initializeMQTT(struct MQTTConfig* mqttConfig, struct mosquitto * mosq, void (*on_message))
+void disconnectMQTT(struct mosquitto * mosq);
+
 #endif
+
