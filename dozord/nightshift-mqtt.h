@@ -63,8 +63,9 @@ struct MQTTThreadPayload {
   struct MQTTConfig * mqttConfig;
 };
 
-struct mosquitto * initializeMQTT(struct MQTTConfig* mqttConfig, void (*on_message));
-void disconnectMQTT(struct mosquitto * mosq);
+void initializeMQTT(struct MQTTConfig* mqttConfig, void (*on_message));
+void disconnectMQTT();
+void publish(char * topic, char * message, bool retainFlag);
 
 #endif
 

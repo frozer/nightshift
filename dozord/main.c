@@ -158,7 +158,7 @@ void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mos
 
 int main(int argc, char **argv) 
 { 
-  struct mosquitto * mosq;
+  // struct mosquitto * mosq;
   struct MQTTConfig mqttConfig;
 
   int opt;
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
   // initCommandsStore();
 
   // initialize MQTT
-  mosq = initializeMQTT(&appConfig.mqttConfig, mqtt_message_callback);
+  initializeMQTT(&appConfig.mqttConfig, mqtt_message_callback);
 
   while (!exitRequested) {
     
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
   
   pthread_mutex_destroy(&writelock);
 
-  disconnectMQTT(mosq);
+  disconnectMQTT();
 
   pthread_exit(NULL);
 

@@ -18,7 +18,6 @@ ltmain.sh
 missing
 stamp-h1
 *.tar.gz
-nightshift-*
 dozord/dozord
 tools/parser
 configure~
