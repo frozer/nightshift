@@ -279,7 +279,7 @@ void displayHelp()
 void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {
   char logMessage[256];
-  snprintf(logMessage, sizeof(logMessage), "MQTT:: %s", (char *) message->payload);
+  snprintf(logMessage, sizeof(logMessage), "MQTT:: New message received, topic - \"%s\", \"%s\"", (char *) message->topic, (char *) message->payload);
   logger(LOG_LEVEL_INFO, logMessage);
 	
   pthread_mutex_lock(&writelock);
@@ -466,7 +466,7 @@ int main(int argc, char **argv)
     }
   }
 
-  if (appConfig.siteId == "")
+  if (appConfig.siteId == 0)
   {
     logger(LOG_LEVEL_ERROR, "Guard device ID is not set. Exiting.");
 		return 0;  
@@ -479,7 +479,7 @@ int main(int argc, char **argv)
   }
 
   char logMessage[256];
-  snprintf(logMessage, sizeof(logMessage), "Listen %s, guard device ID %s", appConfig.port, appConfig.siteId);
+  snprintf(logMessage, sizeof(logMessage), "Listen %d, guard device ID %d", appConfig.port, appConfig.siteId);
   logger(LOG_LEVEL_INFO, logMessage);
 
   pthread_mutex_init(&writelock, NULL);

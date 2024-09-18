@@ -17,7 +17,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-void logger(const char* level, const char* message)
+void logger(const char* level, const char* message);
 
 #define LOG_LEVEL_INFO "INFO"
 #define LOG_LEVEL_WARNING "WARNING"

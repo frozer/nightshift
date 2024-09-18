@@ -20,7 +20,7 @@
 #define MQTT_HOST "localhost"
 #define MQTT_PORT 1883
 #define MQTT_KEEPALIVE_SEC 60
-#define MQTT_RECONNECT_SEC 30
+#define MQTT_RECONNECT_SEC 3
 
 // publish
 #define ACK_TOPIC "/nightshift/notify"
@@ -63,7 +63,7 @@ struct MQTTThreadPayload {
   struct MQTTConfig * mqttConfig;
 };
 
-int initializeMQTT(struct MQTTConfig* mqttConfig, struct mosquitto * mosq, void (*on_message))
+int initializeMQTT(struct MQTTConfig* mqttConfig, struct mosquitto * mosq, void (*on_message));
 void disconnectMQTT(struct mosquitto * mosq);
 
 #endif
