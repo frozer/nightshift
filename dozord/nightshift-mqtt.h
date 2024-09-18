@@ -63,7 +63,7 @@ struct MQTTThreadPayload {
   struct MQTTConfig * mqttConfig;
 };
 
-int initializeMQTT(struct MQTTConfig* mqttConfig, struct mosquitto * mosq, void (*on_message));
+struct mosquitto * initializeMQTT(struct MQTTConfig* mqttConfig, void (*on_message));
 void disconnectMQTT(struct mosquitto * mosq);
 
 #endif
