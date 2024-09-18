@@ -58,11 +58,6 @@ pthread_mutex_t writelock;
 
 // static Commands * commands;
 
-// struct mosquitto * mosq;
-// int mosqConnectorId = 0;
-// bool GlobalMQTTConnected = false;
-// pthread_t GlobalReconnectThread = 0;
-
 volatile sig_atomic_t exitRequested = 0;
 
 void term(int signum)
@@ -132,16 +127,6 @@ void displayHelp()
 {
   printf("dozord %s\nUsage: ./dozord -s <site> -l <port|1111> -k <device pincode> -m <MQTT host|127.0.0.1> -p <MQTT port|1883> -d\n", VERSION);
 }
-
-// void getAgentInfo(char* agentInfo)
-// {
-//   if (agentInfo == NULL)
-//   {
-//     return;
-//   }
-
-//   sprintf(agentInfo, ACK_JSON, VERSION, AGENT_ID, GlobalArgs.siteId);
-// }
 
 // void initCommandsStore()
 // {
