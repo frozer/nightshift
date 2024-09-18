@@ -204,78 +204,6 @@ void displayHelp()
 //   return (void *) 0;
 // }
 
-// void* mqtt_thread_reconnect(void* args)
-// {
-//   struct mosquitto *mosq = NULL;
-// 	int sleep_time = 30;
-// 	if(args == NULL)
-// 	{
-// 		pthread_exit(0);
-// 		return 0;
-// 	}
-// 	mosq = (struct mosquitto*)args;
-// 	sleep_time += (10 - (rand() % 20));
-// 	sleep(sleep_time);
-// 	if(!GlobalMQTTConnected && !exitRequested)
-// 		mosquitto_reconnect_async(mosq);
-
-// 	pthread_exit(0);
-// 	return 0;
-// }
-
-// void* mqtt_thread_connect(void* args)
-// {
-//   struct mosquitto *mosq = NULL;
-//   char agentInfo[256] = {0};
-//   char commandTopic[256] = {0};
-//   sprintf(commandTopic, COMMAND_TOPIC, GlobalArgs.siteId);
-
-// 	if(args == NULL)
-// 	{
-// 		pthread_exit(0);
-// 		return NULL;
-// 	}
-
-//   getAgentInfo(agentInfo);
-
-// 	mosq = (struct mosquitto *) args;
-  
-//   mosquitto_subscribe(mosq, NULL, commandTopic, 0);
-
-//   mosquitto_publish(mosq, NULL, ACK_TOPIC, strlen(agentInfo), agentInfo, 0, false);
-
-//   pthread_exit(0);
-//   return NULL;
-// }
-
-// void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
-// {
-//   if (GlobalReconnectThread)
-//   {
-//     pthread_cancel(GlobalReconnectThread);
-//     pthread_join(GlobalReconnectThread, NULL);
-//     GlobalReconnectThread = 0;
-//   }
-
-//   if (result == 0)
-//   {
-//     pthread_t conn = 0;
-//     if (GlobalArgs.debug)
-//     {
-//       printf("*** connected to %s:%d, rc=%d\n", MQTT_HOST, MQTT_PORT, result);
-//     }
-
-//     GlobalMQTTConnected = true;
-//     if (pthread_create(&conn, NULL, mqtt_thread_connect, mosq) == 0)
-//       pthread_detach(conn);
-//   } else {
-//     printf("*** broker connection lost\n");
-//     GlobalMQTTConnected = false;
-//     if (pthread_create(&GlobalReconnectThread, NULL, mqtt_thread_reconnect, mosq) != 0)
-//       GlobalReconnectThread = 0;
-//   }
-// }
-
 void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {
   char logMessage[256];
@@ -416,8 +344,6 @@ int main(int argc, char **argv)
   appConfig.mqttConfig.debug = DEBUG;
   strncpy(appConfig.mqttConfig.agentId, AGENT_ID, sizeof(appConfig.mqttConfig.agentId));
   appConfig.debug = DEBUG;
-
-  
 
   if (argc < 2)
   {
