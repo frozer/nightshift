@@ -102,6 +102,7 @@ void* mqtt_thread_connect(void* args)
   sprintf(commandTopic, COMMAND_TOPIC, payload->mqttConfig->siteId);
   sprintf(agentInfo, ACK_JSON, payload->mqttConfig->agentId, payload->mqttConfig->siteId);
 
+  // @todo replace payload->mosq woth mosq
   rc = mosquitto_subscribe(payload->mosq, NULL, commandTopic, 0);
   if (rc != MOSQ_ERR_SUCCESS) {
     snprintf(logMessage, sizeof(logMessage), "MQTT:: Failed to subscribe to command topic \"%s\". Error code: %d", commandTopic, rc);
@@ -113,6 +114,7 @@ void* mqtt_thread_connect(void* args)
 
   publish(ACK_TOPIC, agentInfo, false);
 
+  // @todo remove me
   // rc = mosquitto_publish(payload->mosq, NULL, ACK_TOPIC, strlen(agentInfo), agentInfo, 0, false);
   // if (rc != MOSQ_ERR_SUCCESS) {
   //    snprintf(logMessage, sizeof(logMessage), "MQTT:: Failed to publish to ACK topic \"%s\". Error code: %d", ACK_TOPIC, rc);
@@ -183,7 +185,6 @@ void initializeMQTT(struct MQTTConfig* mqttConfig, void (*on_message))
   bool retainFlag = true;
   char logMessage[256];
   
-
   int rc = 0;
 
   pthread_mutex_init(&GlobalMQTTConnectedLock, NULL);
