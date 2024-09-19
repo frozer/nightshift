@@ -16,9 +16,6 @@
 */
 
 #include <pthread.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -45,7 +42,7 @@
 struct AppConfig {
   unsigned int siteId;
   unsigned int port;
-  char pinCode[10];
+  char pinCode[32];
   struct MQTTConfig mqttConfig;
   unsigned int debug;
 };
@@ -63,8 +60,6 @@ volatile sig_atomic_t exitRequested = 0;
 void term(int signum)
 {
    exitRequested = 1;
-   
-  //  mosquitto_loop_stop(mosq, &(int){1});
 }
 
 // void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
@@ -158,9 +153,6 @@ void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mos
 
 int main(int argc, char **argv) 
 { 
-  // struct mosquitto * mosq;
-  struct MQTTConfig mqttConfig;
-
   int opt;
   // pthread_t watcherWorker;
 
