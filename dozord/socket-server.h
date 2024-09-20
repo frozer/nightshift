@@ -18,9 +18,9 @@
 struct SocketConfig {
   unsigned int siteId;
   unsigned int port;
-  unsigned int debug;
   char pinCode[32];
   void * on_message;
+  unsigned int debug;
 };
 
 struct ConnectionPayload {

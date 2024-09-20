@@ -31,6 +31,7 @@
 #include "command.h"
 #include "nightshift-mqtt.h"
 #include "logger.h"
+#include "socket-server.h"
 
 #define SA struct sockaddr
 #define DEFAULT_PORT 1111
@@ -40,9 +41,7 @@
 #define AGENT_ID "80d7be61-d81d-4aac-9012-6729b6392a89"
 
 struct AppConfig {
-  unsigned int siteId;
-  unsigned int port;
-  char pinCode[32];
+  struct SocketConfig socketConfig;
   struct MQTTConfig mqttConfig;
   unsigned int debug;
 };
@@ -135,7 +134,9 @@ void displayHelp()
 //   commands->length = 0;
 // }
 
+void * socket_message_callback() {
 
+}
 
 void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {
@@ -163,15 +164,20 @@ int main(int argc, char **argv)
   sigaction(SIGTERM, &action, NULL);
 
   struct AppConfig appConfig;
-  appConfig.port = DEFAULT_PORT;
-  appConfig.siteId = 0;
+
+  appConfig.socketConfig.port = DEFAULT_PORT;
+  appConfig.socketConfig.siteId = 0;
+  strncpy(appConfig.socketConfig.pinCode, "", sizeof(appConfig.socketConfig.pinCode));
+  appConfig.socketConfig.debug = DEBUG;
+  appConfig.socketConfig.on_message = socket_message_callback;
+
   appConfig.mqttConfig.siteId = 0;
-  strncpy(appConfig.pinCode, "", sizeof(appConfig.pinCode));
   strncpy(appConfig.mqttConfig.host, MQTT_HOST, sizeof(appConfig.mqttConfig.host));
   appConfig.mqttConfig.port = MQTT_PORT;
   appConfig.mqttConfig.debug = DEBUG;
   strncpy(appConfig.mqttConfig.agentId, AGENT_ID, sizeof(appConfig.mqttConfig.agentId));
-  appConfig.debug = DEBUG;
+
+  
 
   if (argc < 2)
   {
@@ -184,16 +190,16 @@ int main(int argc, char **argv)
     switch(opt)  
     {  
       case 'l':
-        appConfig.port = strtol(optarg, 0, 10);
+        appConfig.socketConfig.port = strtol(optarg, 0, 10);
         break;
 
       case 'k':
-        strncpy(appConfig.pinCode, optarg, sizeof(appConfig.pinCode));
+        strncpy(appConfig.socketConfig.pinCode, optarg, sizeof(appConfig.socketConfig.pinCode));
         break;
 
       case 's':
-        appConfig.siteId = strtol(optarg, 0, 10);
-        appConfig.mqttConfig.siteId = appConfig.siteId;
+        appConfig.socketConfig.siteId = strtol(optarg, 0, 10);
+        appConfig.mqttConfig.siteId = appConfig.socketConfig.siteId;
         break;
 
       case 'm':
@@ -212,7 +218,7 @@ int main(int argc, char **argv)
 
       case 'd':
         appConfig.mqttConfig.debug = 1;
-        appConfig.debug = 1;
+        appConfig.socketConfig.debug = 1;
         break;
 
       default:
@@ -220,20 +226,20 @@ int main(int argc, char **argv)
     }
   }
 
-  if (appConfig.siteId == 0)
+  if (appConfig.socketConfig.siteId == 0)
   {
     logger(LOG_LEVEL_ERROR, "Guard device ID is not set. Exiting.");
 		return 0;  
   }
 
-  if (appConfig.pinCode == "")
+  if (appConfig.socketConfig.pinCode == "")
   {
     logger(LOG_LEVEL_ERROR, "Guard device pincode is not set. Exiting.");
 		return 0;  
   }
 
   char logMessage[256];
-  snprintf(logMessage, sizeof(logMessage), "Listen %d, guard device ID %d", appConfig.port, appConfig.siteId);
+  snprintf(logMessage, sizeof(logMessage), "Guard device ID %d", appConfig.socketConfig.siteId);
   logger(LOG_LEVEL_INFO, logMessage);
 
   pthread_mutex_init(&writelock, NULL);
@@ -246,12 +252,16 @@ int main(int argc, char **argv)
   // initialize MQTT
   initializeMQTT(&appConfig.mqttConfig, mqtt_message_callback);
 
+  startSocketService(&appConfig.socketConfig);
+
   while (!exitRequested) {
     
   }
   
   pthread_mutex_destroy(&writelock);
 
+  stopSocketService();
+  
   disconnectMQTT();
 
   pthread_exit(NULL);

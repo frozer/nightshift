@@ -24,7 +24,6 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/inotify.h>
 #include <stdbool.h>
 #include <dozor.h>
 #include "socket-server.h"
@@ -32,12 +31,14 @@
 
 pthread_t ServiceThreadId;
 pthread_t connectionWorkers[5] = {0};
-unsigned int exitRequested = 0;
+unsigned int socketExitRequested = 0;
 
 void * connectionCb(void * args) {
   struct ConnectionPayload * payload = (struct ConnectionPayload *) args;
   uint8_t packet[BUFFERSIZE];
-  int sockfd = payload->sockfd;
+  char logMessage[2048];
+
+  int sockfd = payload->sockfd; 
 
   CryptoSession * crypto = malloc(sizeof(CryptoSession));
   if (crypto == NULL)
@@ -57,13 +58,29 @@ void * connectionCb(void * args) {
     return 0;
   }
 
-  int res = dozor_unpack(crypto, payload->pinCode, packet, payload->on_message, payload->debug);
-  if (res < 0) {
-    free(crypto);
-    close(sockfd);
-    pthread_exit(0);
-    return 0;
-  }
+  snprintf(logMessage, sizeof(logMessage), "TCP::%s %s", payload->clientIp, (char *) packet);
+  logger(LOG_LEVEL_INFO, logMessage);   
+  
+  free(crypto);
+  close(sockfd);
+
+  connectionWorkers[payload->workerId] = 0;
+
+  snprintf(logMessage, sizeof(logMessage), "TCP::%s closed", payload->clientIp);
+  logger(LOG_LEVEL_INFO, logMessage);   
+
+  
+  pthread_exit(0);
+  
+  return NULL;
+  
+  // int res = dozor_unpack(crypto, payload->pinCode, packet, payload->on_message, payload->debug);
+  // if (res < 0) {
+  //   free(crypto);
+  //   close(sockfd);
+  //   pthread_exit(0);
+  //   return 0;
+  // }
 }
 
 void * startSocketListener(void * args) {
@@ -72,13 +89,12 @@ void * startSocketListener(void * args) {
   int sockfd, newsockfd, pid, rc; 
   int port;
   char clientIp[INET_ADDRSTRLEN];
-	struct sockaddr_in servaddr = {0};
-  
-  struct sockaddr_in cli = {0};
+	struct sockaddr_in servaddr;
+  struct sockaddr_in cli;
+  char logMessage[256];
+  struct ConnectionPayload infos[5];
   socklen_t len;
 
-  struct ConnectionPayload infos[5];
-  
   unsigned short int i = 0;
 
   // socket create and verification 
@@ -96,14 +112,14 @@ void * startSocketListener(void * args) {
   }
 
 	bzero(&servaddr, sizeof(servaddr)); 
-
+  
 	// assign IP, PORT
-	servaddr.sin_family = AF_INET; 
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
+	servaddr.sin_family = AF_INET;
+  servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
 	servaddr.sin_port = htons(socketConfig->port); 
 
 	// Binding newly created socket to given IP and verification 
-	if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) { 
+	if ((bind(sockfd, (struct sockaddr *) &servaddr, (socklen_t) sizeof(servaddr))) != 0) { 
 		fprintf(stderr, "Socket bind failed: %s\n", strerror(errno));
 		exit(-1); 
 	}
@@ -114,17 +130,19 @@ void * startSocketListener(void * args) {
 		exit(-1); 
 	}
 
-  while(!exitRequested)
+  snprintf(logMessage, sizeof(logMessage), "TCP::Listen *:%d", socketConfig->port);
+  logger(LOG_LEVEL_INFO, logMessage);
+
+  while(!socketExitRequested)
   {
     if (i < 5) {
-      if (connectionWorkers[i] == 0) {
-        
+      if (!connectionWorkers[i]) {
+
         struct ConnectionPayload payload;
 
+        // Accept the data packet from client and verification
         len = sizeof(cli);
-
-        // Accept the data packet from client and verification 
-        newsockfd = accept(sockfd, (SA*)&cli, &len);
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli, &len);
 
         if (newsockfd < 0) { 
           fprintf(stderr, "Server accept failed: %s\n", strerror(errno));
@@ -149,10 +167,26 @@ void * startSocketListener(void * args) {
         }
       }
       i++;
+    
     } else {
       i = 0;
     }
   }
+
+  logger(LOG_LEVEL_INFO, "TCP::Closing client connections...");
+  for (i = 0; i < 5; i++) {
+    if (connectionWorkers[i]) {
+      pthread_join(connectionWorkers[i], NULL);
+      connectionWorkers[i] = 0;
+    }
+  }
+  logger(LOG_LEVEL_INFO, "TCP::Client connections closed.");
+
+  close(sockfd);
+
+  pthread_exit(0);
+
+  return NULL;
 }
 
 // // handle network connections
@@ -206,11 +240,16 @@ void * startSocketListener(void * args) {
 
 
 void startSocketService(struct SocketConfig * config) {
+
   if (pthread_create(&ServiceThreadId, NULL, startSocketListener, config) != 0)
     ServiceThreadId = 0;
 }
 
 void stopSocketService() {
-  exitRequested = 1;
+  socketExitRequested = 1;
 
+  if (ServiceThreadId) {
+    pthread_join(ServiceThreadId, NULL);
+    ServiceThreadId = 0;
+  }
 }
