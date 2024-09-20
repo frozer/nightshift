@@ -32,6 +32,7 @@
 pthread_t ServiceThreadId;
 pthread_t connectionWorkers[5] = {0};
 unsigned int socketExitRequested = 0;
+pthread_mutex_t GlobaSocketLock;
 
 void * connectionCb(void * args) {
   struct ConnectionPayload * payload = (struct ConnectionPayload *) args;
@@ -64,7 +65,9 @@ void * connectionCb(void * args) {
   free(crypto);
   close(sockfd);
 
+  pthread_mutex_lock(&GlobaSocketLock);
   connectionWorkers[payload->workerId] = 0;
+  pthread_mutex_unlock(&GlobaSocketLock);
 
   snprintf(logMessage, sizeof(logMessage), "%s closed", payload->clientIp);
   logger(LOG_LEVEL_INFO, "TCP", logMessage);   
@@ -160,11 +163,14 @@ void * startSocketListener(void * args) {
         payload.on_message = socketConfig->on_message;
         payload.workerId = i;
 
+        pthread_mutex_lock(&GlobaSocketLock);
         if (pthread_create(&connectionWorkers[i], NULL, connectionCb, (void *) &payload) != 0) {
           connectionWorkers[i] = 0;
           fprintf(stderr, "Connection workers init failed: %s\n", strerror(errno));
           exit(-1);
         }
+        pthread_mutex_unlock(&GlobaSocketLock);
+
       }
       i++;
     
@@ -177,7 +183,10 @@ void * startSocketListener(void * args) {
   for (i = 0; i < 5; i++) {
     if (connectionWorkers[i]) {
       pthread_join(connectionWorkers[i], NULL);
+
+      pthread_mutex_lock(&GlobaSocketLock);
       connectionWorkers[i] = 0;
+      pthread_mutex_unlock(&GlobaSocketLock);
     }
   }
   logger(LOG_LEVEL_INFO, "TCP", "Client connections closed.");
@@ -240,6 +249,7 @@ void * startSocketListener(void * args) {
 
 
 void startSocketService(struct SocketConfig * config) {
+  pthread_mutex_init(&GlobaSocketLock, NULL);
 
   if (pthread_create(&ServiceThreadId, NULL, startSocketListener, config) != 0)
     ServiceThreadId = 0;
@@ -252,4 +262,6 @@ void stopSocketService() {
     pthread_join(ServiceThreadId, NULL);
     ServiceThreadId = 0;
   }
+
+  pthread_mutex_destroy(&GlobaSocketLock);
 }

@@ -244,9 +244,6 @@ int main(int argc, char **argv)
 
   pthread_mutex_init(&writelock, NULL);
 
-  // start Dozor listener server on specified port
-  // startDozorListener();
-
   // initCommandsStore();
 
   // initialize MQTT
