@@ -48,13 +48,13 @@ void getISODateTime(char* buffer, size_t bufferSize) {
              timezoneMinutes);
 }
 
-void logger(const char* level, const char* message) {
+void logger(const char* level, const char* source, const char* message) {
     char dateTimeBuffer[30];  // Buffer to hold the timestamp in ISO 8601 format
     getISODateTime(dateTimeBuffer, sizeof(dateTimeBuffer));
 
     // Concatenate timestamp with the log message
     char logMessage[256];  // Buffer for the final log message
-    snprintf(logMessage, sizeof(logMessage), "[%s] %s %s", dateTimeBuffer, level, message);
+    snprintf(logMessage, sizeof(logMessage), "[%s] %s [%s] %s", dateTimeBuffer, level, source, message);
 
     // Print the log message
     printf("%s\n", logMessage);
