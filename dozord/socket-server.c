@@ -58,16 +58,16 @@ void * connectionCb(void * args) {
     return 0;
   }
 
-  snprintf(logMessage, sizeof(logMessage), "TCP::%s %s", payload->clientIp, (char *) packet);
-  logger(LOG_LEVEL_INFO, logMessage);   
+  snprintf(logMessage, sizeof(logMessage), "%s %s", payload->clientIp, (char *) packet);
+  logger(LOG_LEVEL_INFO, "TCP", logMessage);   
   
   free(crypto);
   close(sockfd);
 
   connectionWorkers[payload->workerId] = 0;
 
-  snprintf(logMessage, sizeof(logMessage), "TCP::%s closed", payload->clientIp);
-  logger(LOG_LEVEL_INFO, logMessage);   
+  snprintf(logMessage, sizeof(logMessage), "%s closed", payload->clientIp);
+  logger(LOG_LEVEL_INFO, "TCP", logMessage);   
 
   
   pthread_exit(0);
@@ -130,8 +130,8 @@ void * startSocketListener(void * args) {
 		exit(-1); 
 	}
 
-  snprintf(logMessage, sizeof(logMessage), "TCP::Listen *:%d", socketConfig->port);
-  logger(LOG_LEVEL_INFO, logMessage);
+  snprintf(logMessage, sizeof(logMessage), "Listen *:%d", socketConfig->port);
+  logger(LOG_LEVEL_INFO, "TCP", logMessage);
 
   while(!socketExitRequested)
   {
@@ -173,14 +173,14 @@ void * startSocketListener(void * args) {
     }
   }
 
-  logger(LOG_LEVEL_INFO, "TCP::Closing client connections...");
+  logger(LOG_LEVEL_INFO, "TCP", "Closing client connections...");
   for (i = 0; i < 5; i++) {
     if (connectionWorkers[i]) {
       pthread_join(connectionWorkers[i], NULL);
       connectionWorkers[i] = 0;
     }
   }
-  logger(LOG_LEVEL_INFO, "TCP::Client connections closed.");
+  logger(LOG_LEVEL_INFO, "TCP", "Client connections closed.");
 
   close(sockfd);
 

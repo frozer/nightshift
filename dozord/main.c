@@ -142,7 +142,7 @@ void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mos
 {
   char logMessage[256];
   snprintf(logMessage, sizeof(logMessage), "MQTT:: New message received, topic - \"%s\", \"%s\"", (char *) message->topic, (char *) message->payload);
-  logger(LOG_LEVEL_INFO, logMessage);
+  logger(LOG_LEVEL_INFO, "-", logMessage);
 	
   pthread_mutex_lock(&writelock);
   
@@ -228,19 +228,19 @@ int main(int argc, char **argv)
 
   if (appConfig.socketConfig.siteId == 0)
   {
-    logger(LOG_LEVEL_ERROR, "Guard device ID is not set. Exiting.");
+    logger(LOG_LEVEL_ERROR, "-", "Guard device ID is not set. Exiting.");
 		return 0;  
   }
 
   if (appConfig.socketConfig.pinCode == "")
   {
-    logger(LOG_LEVEL_ERROR, "Guard device pincode is not set. Exiting.");
+    logger(LOG_LEVEL_ERROR, "-", "Guard device pincode is not set. Exiting.");
 		return 0;  
   }
 
   char logMessage[256];
   snprintf(logMessage, sizeof(logMessage), "Guard device ID %d", appConfig.socketConfig.siteId);
-  logger(LOG_LEVEL_INFO, logMessage);
+  logger(LOG_LEVEL_INFO, "-", logMessage);
 
   pthread_mutex_init(&writelock, NULL);
 

@@ -21,11 +21,11 @@ void publish(char * topic, char * message, bool retainFlag) {
   if (GlobalMQTTConnected) {
     rc = mosquitto_publish(mosq, NULL, topic, strlen(message), message, 0, retainFlag);
     if (rc != MOSQ_ERR_SUCCESS) {
-      snprintf(logMessage, sizeof(logMessage), "MQTT::Failed to publish to topic \"%s\". Error code: %d", topic, rc);
-      logger(LOG_LEVEL_ERROR, logMessage);
+      snprintf(logMessage, sizeof(logMessage), "Failed to publish to topic \"%s\". Error code: %d", topic, rc);
+      logger(LOG_LEVEL_ERROR, "MQTT", logMessage);
     } else {
-      snprintf(logMessage, sizeof(logMessage), "MQTT::\"%s\" published to \"%s\"", message, topic);
-      logger(LOG_LEVEL_INFO, logMessage);
+      snprintf(logMessage, sizeof(logMessage), "\"%s\" published to \"%s\"", message, topic);
+      logger(LOG_LEVEL_INFO, "MQTT", logMessage);
     }
   } else {
     // @todo build outgoing queue
@@ -61,8 +61,8 @@ void* mqtt_thread_reconnect(void* args)
 
   sleep_time += rand() % 20;
 
-  snprintf(logMessage, sizeof(logMessage), "MQTT::Connection lost. Reconnecting... %d sec", sleep_time);
-  logger(LOG_LEVEL_INFO, logMessage);
+  snprintf(logMessage, sizeof(logMessage), "Connection lost. Reconnecting... %d sec", sleep_time);
+  logger(LOG_LEVEL_INFO, "MQTT", logMessage);
 
 	sleep(sleep_time);
 
@@ -77,8 +77,8 @@ void* mqtt_thread_reconnect(void* args)
 		
     rc = mosquitto_reconnect_async(mosq);
     if (rc != MOSQ_ERR_SUCCESS) {
-      snprintf(logMessage, sizeof(logMessage), "MQTT::Failed to reconnect. Error code: %d", rc);
-      logger(LOG_LEVEL_ERROR, logMessage);
+      snprintf(logMessage, sizeof(logMessage), "Failed to reconnect. Error code: %d", rc);
+      logger(LOG_LEVEL_ERROR, "MQTT", logMessage);
     }
   }
 
@@ -105,24 +105,14 @@ void* mqtt_thread_connect(void* args)
   // @todo replace payload->mosq woth mosq
   rc = mosquitto_subscribe(payload->mosq, NULL, commandTopic, 0);
   if (rc != MOSQ_ERR_SUCCESS) {
-    snprintf(logMessage, sizeof(logMessage), "MQTT::Failed to subscribe to command topic \"%s\". Error code: %d", commandTopic, rc);
-    logger(LOG_LEVEL_ERROR, logMessage);
+    snprintf(logMessage, sizeof(logMessage), "Failed to subscribe to command topic \"%s\". Error code: %d", commandTopic, rc);
+    logger(LOG_LEVEL_ERROR, "MQTT", logMessage);
   } else {
-    snprintf(logMessage, sizeof(logMessage), "MQTT::Command topic \"%s\" subscribed", commandTopic);
-    logger(LOG_LEVEL_INFO, logMessage);
+    snprintf(logMessage, sizeof(logMessage), "Command topic \"%s\" subscribed", commandTopic);
+    logger(LOG_LEVEL_INFO, "MQTT", logMessage);
   }
 
   publish(ACK_TOPIC, agentInfo, false);
-
-  // @todo remove me
-  // rc = mosquitto_publish(payload->mosq, NULL, ACK_TOPIC, strlen(agentInfo), agentInfo, 0, false);
-  // if (rc != MOSQ_ERR_SUCCESS) {
-  //    snprintf(logMessage, sizeof(logMessage), "MQTT:: Failed to publish to ACK topic \"%s\". Error code: %d", ACK_TOPIC, rc);
-  //   logger(LOG_LEVEL_ERROR, logMessage);
-  // } else {
-  //   snprintf(logMessage, sizeof(logMessage), "MQTT:: \"%s\" published to %s", agentInfo, ACK_TOPIC);
-  //   logger(LOG_LEVEL_INFO, logMessage);
-  // }
 
   free(payload);
   pthread_exit(0);
@@ -143,8 +133,8 @@ void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
   {
     pthread_t conn = 0;
 
-    snprintf(logMessage, sizeof(logMessage), "MQTT::Connected %s:%d", mqttConfig->host, mqttConfig->port);
-    logger(LOG_LEVEL_INFO, logMessage);
+    snprintf(logMessage, sizeof(logMessage), "Connected %s:%d", mqttConfig->host, mqttConfig->port);
+    logger(LOG_LEVEL_INFO, "MQTT", logMessage);
 
     pthread_mutex_lock(&GlobalMQTTConnectedLock);
     shouldReconnect = false;
@@ -153,7 +143,7 @@ void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
 
     struct MQTTThreadPayload *payload = malloc(sizeof(struct MQTTThreadPayload));
     if (!payload) {
-      logger(LOG_LEVEL_ERROR, "Failed to allocate memory for MQTTThreadPayload.");
+      logger(LOG_LEVEL_ERROR, "MQTT", "Failed to allocate memory for MQTTThreadPayload.");
       return;
     }
     
@@ -165,7 +155,7 @@ void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
   
   } else {
     
-    logger(LOG_LEVEL_ERROR, "MQTT::connection lost. Reconnecting...");
+    logger(LOG_LEVEL_ERROR, "MQTT", "connection lost. Reconnecting...");
 
     pthread_mutex_lock(&GlobalMQTTConnectedLock);
     shouldReconnect = true;
@@ -207,20 +197,20 @@ void initializeMQTT(struct MQTTConfig* mqttConfig, void (*on_message))
     rc = mosquitto_loop_start(mosq);
     if (rc != MOSQ_ERR_SUCCESS)
     {
-      snprintf(logMessage, sizeof(logMessage), "MQTT::Unable to init MQTT %d", rc);
-      logger(LOG_LEVEL_ERROR, logMessage);
+      snprintf(logMessage, sizeof(logMessage), "Unable to init MQTT %d", rc);
+      logger(LOG_LEVEL_ERROR, "MQTT", logMessage);
     }
 
     rc = mosquitto_connect(mosq, mqttConfig->host, mqttConfig->port, MQTT_KEEPALIVE_SEC);
     
     if (rc != MOSQ_ERR_SUCCESS)
     {
-      snprintf(logMessage, sizeof(logMessage), "MQTT::Unable to connect %s:%d", mqttConfig->host, mqttConfig->port);
-      logger(LOG_LEVEL_ERROR, logMessage);   
+      snprintf(logMessage, sizeof(logMessage), "Unable to connect %s:%d", mqttConfig->host, mqttConfig->port);
+      logger(LOG_LEVEL_ERROR, "MQTT", logMessage);   
     }
 
   } else {
-    logger(LOG_LEVEL_ERROR, "MQTT::Failed to create new Mosquitto instance.");
+    logger(LOG_LEVEL_ERROR, "MQTT", "Failed to create new Mosquitto instance.");
     mosquitto_lib_cleanup();  
   }
 }
@@ -231,7 +221,7 @@ void disconnectMQTT() {
   int rc = 0;
   char logMessage[256];
 
-  logger(LOG_LEVEL_INFO, "MQTT::Closing connection...");
+  logger(LOG_LEVEL_INFO, "MQTT", "Closing connection...");
 
   if (GlobalReconnectThread) {
     pthread_join(GlobalReconnectThread, NULL);
@@ -242,19 +232,19 @@ void disconnectMQTT() {
     rc = mosquitto_disconnect(mosq);
     if (rc != MOSQ_ERR_SUCCESS) {
       if (rc == MOSQ_ERR_INVAL) {
-        snprintf(logMessage, sizeof(logMessage), "MQTT::Unable to disconnect. input parameters were invalid");
-        logger(LOG_LEVEL_ERROR, logMessage);
+        snprintf(logMessage, sizeof(logMessage), "Unable to disconnect. input parameters were invalid");
+        logger(LOG_LEVEL_ERROR, "MQTT", logMessage);
       }
       if (rc == MOSQ_ERR_NO_CONN) {
-        snprintf(logMessage, sizeof(logMessage), "MQTT::Unable to disconnect. client isnt connected to a broker");
-        logger(LOG_LEVEL_ERROR, logMessage);
+        snprintf(logMessage, sizeof(logMessage), "Unable to disconnect. client isnt connected to a broker");
+        logger(LOG_LEVEL_ERROR, "MQTT", logMessage);
       }
     }
 
     rc = mosquitto_loop_stop(mosq, true);
     if (rc != MOSQ_ERR_SUCCESS) {
-      snprintf(logMessage, sizeof(logMessage), "MQTT::Unable to stop loop. Error code: %d", rc);
-      logger(LOG_LEVEL_ERROR, logMessage);
+      snprintf(logMessage, sizeof(logMessage), "Unable to stop loop. Error code: %d", rc);
+      logger(LOG_LEVEL_ERROR, "MQTT", logMessage);
     }
 
     mosquitto_destroy(mosq);
@@ -264,5 +254,5 @@ void disconnectMQTT() {
 
   pthread_mutex_destroy(&GlobalMQTTConnectedLock);
     
-  logger(LOG_LEVEL_INFO, "MQTT::Closed.");
+  logger(LOG_LEVEL_INFO, "MQTT", "Closed.");
 }
