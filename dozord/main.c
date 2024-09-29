@@ -31,6 +31,7 @@
 #include "command.h"
 #include "nightshift-mqtt.h"
 #include "logger.h"
+#include "app-config.h"
 #include "socket-server.h"
 
 #define SA struct sockaddr
@@ -163,39 +164,12 @@ int main(int argc, char **argv)
   action.sa_handler = term;
   sigaction(SIGTERM, &action, NULL);
 
-  struct AppConfig appConfig;
-
-  appConfig.socketConfig.port = DEFAULT_PORT;
-  appConfig.socketConfig.siteId = 0;
-  strncpy(appConfig.socketConfig.pinCode, "", sizeof(appConfig.socketConfig.pinCode));
-  appConfig.socketConfig.debug = DEBUG;
+  struct AppConfig appConfig = initializeAppConfig();
   appConfig.socketConfig.on_message = socket_message_callback;
 
-  appConfig.mqttConfig.siteId = 0;
-  strncpy(appConfig.mqttConfig.host, MQTT_HOST, sizeof(appConfig.mqttConfig.host));
-  appConfig.mqttConfig.port = MQTT_PORT;
-  appConfig.mqttConfig.debug = DEBUG;
-  strncpy(appConfig.mqttConfig.agentId, AGENT_ID, sizeof(appConfig.mqttConfig.agentId));
-
-  
-
-  if (argc < 2)
-  {
+  if (argc < 2) {
     printf("Usage: ./dozord -h\n");
     return 0;
-  }
-
-  // Check environment variables
-  char* envSiteId = getenv("DOZOR_SITE_ID");
-  char* envSiteKey = getenv("DOZOR_SITE_KEY");
-
-  if (envSiteId != NULL) {
-    appConfig.socketConfig.siteId = strtol(envSiteId, NULL, 10);
-    appConfig.mqttConfig.siteId = appConfig.socketConfig.siteId;
-  }
-
-  if (envSiteKey != NULL) {
-    strncpy(appConfig.socketConfig.pinCode, envSiteKey, sizeof(appConfig.socketConfig.pinCode));
   }
   {  
     switch(opt)  
