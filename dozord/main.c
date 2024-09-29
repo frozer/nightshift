@@ -155,7 +155,6 @@ void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mos
 
 int main(int argc, char **argv) 
 { 
-  int opt;
   // pthread_t watcherWorker;
 
   // handle SIG
@@ -171,45 +170,7 @@ int main(int argc, char **argv)
     printf("Usage: ./dozord -h\n");
     return 0;
   }
-  {  
-    switch(opt)  
-    {  
-      case 'l':
-        appConfig.socketConfig.port = strtol(optarg, 0, 10);
-        break;
-
-      case 'k':
-        strncpy(appConfig.socketConfig.pinCode, optarg, sizeof(appConfig.socketConfig.pinCode));
-        break;
-
-      case 's':
-        appConfig.socketConfig.siteId = strtol(optarg, 0, 10);
-        appConfig.mqttConfig.siteId = appConfig.socketConfig.siteId;
-        break;
-
-      case 'm':
-        strncpy(appConfig.mqttConfig.host, optarg, sizeof(appConfig.mqttConfig.host));
-        break;
-
-      case 'p':
-        appConfig.mqttConfig.port = strtol(optarg, 0, 10);
-        break;
-
-      case 'h':
-      case '?':
-        displayHelp();
-        exit(0);
-        break;
-
-      case 'd':
-        appConfig.mqttConfig.debug = 1;
-        appConfig.socketConfig.debug = 1;
-        break;
-
-      default:
-        abort();
-    }
-  }
+  processCommandLineOptions(argc, argv, &appConfig);
 
   if (appConfig.socketConfig.siteId == 0)
   {
