@@ -16,9 +16,7 @@
 */
 
 struct SocketConfig {
-  unsigned int siteId;
   unsigned int port;
-  char pinCode[32];
   void * on_message;
   unsigned int debug;
 };
@@ -26,8 +24,6 @@ struct SocketConfig {
 struct ConnectionPayload {
   int sockfd;
   char clientIp[16];
-  unsigned int siteId;
-  char pinCode[32];
   void * on_message;
   unsigned int debug;
   unsigned short int workerId;
