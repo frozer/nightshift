@@ -185,7 +185,18 @@ int main(int argc, char **argv)
     return 0;
   }
 
-  while((opt = getopt(argc, argv, optString)) != -1)  
+  // Check environment variables
+  char* envSiteId = getenv("DOZOR_SITE_ID");
+  char* envSiteKey = getenv("DOZOR_SITE_KEY");
+
+  if (envSiteId != NULL) {
+    appConfig.socketConfig.siteId = strtol(envSiteId, NULL, 10);
+    appConfig.mqttConfig.siteId = appConfig.socketConfig.siteId;
+  }
+
+  if (envSiteKey != NULL) {
+    strncpy(appConfig.socketConfig.pinCode, envSiteKey, sizeof(appConfig.socketConfig.pinCode));
+  }
   {  
     switch(opt)  
     {  
