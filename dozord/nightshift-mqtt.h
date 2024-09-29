@@ -53,7 +53,7 @@
 struct MQTTConfig {
   char host[50];                // MQTT_HOST
   unsigned int port;          // MQTT_PORT 
-  unsigned int siteId;        // GlobalArgs.siteId
+  unsigned int siteId;
   char agentId[36];
   unsigned int debug;
 };

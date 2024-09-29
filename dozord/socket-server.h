@@ -17,6 +17,8 @@
 
 struct SocketConfig {
   unsigned int port;
+  unsigned int siteId;
+  char pinCode[36];
   void * on_message;
   unsigned int debug;
 };
