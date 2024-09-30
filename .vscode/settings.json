@@ -1,6 +1,10 @@
 {
   "files.associations": {
     "nightshift-mqtt.h": "c",
-    "answer.h": "c"
+    "answer.h": "c",
+    "dozor.h": "c",
+    "socket-server.h": "c",
+    "signal.h": "c",
+    "mosquitto.h": "c"
   }
 }

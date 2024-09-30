@@ -21,3 +21,4 @@ stamp-h1
 dozord/dozord
 tools/parser
 configure~
+.aider*

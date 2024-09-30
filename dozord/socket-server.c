@@ -35,55 +35,60 @@ unsigned int socketExitRequested = 0;
 pthread_mutex_t GlobaSocketLock;
 
 void * connectionCb(void * args) {
-  struct ConnectionPayload * payload = (struct ConnectionPayload *) args;
-  uint8_t packet[BUFFERSIZE];
+  struct ConnectionPayload * connInfo = (struct ConnectionPayload *) args;
+  uint8_t data[BUFFERSIZE];
   char logMessage[2048];
+  int sockfd = connInfo->sockfd; 
+  CommandResponse * payload;
 
-  int sockfd = payload->sockfd; 
-
-  CryptoSession * crypto = malloc(sizeof(CryptoSession));
-  if (crypto == NULL)
-  {
-    fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
-    close(sockfd);
-    pthread_exit(0);
-    return 0; 
-  }
-
-  int c = read(sockfd, &packet, BUFFERSIZE);
+  int c = read(sockfd, &data, BUFFERSIZE);
   if (c < 0) {
-    free(crypto);
     fprintf(stderr, "ERROR reading from socket: %s\n", strerror(errno));
     close(sockfd);
     pthread_exit(0);
     return 0;
   }
 
-  snprintf(logMessage, sizeof(logMessage), "%s %s", payload->clientIp, (char *) packet);
+  snprintf(logMessage, sizeof(logMessage), "%s %s", connInfo->clientIp, (char *) data);
   logger(LOG_LEVEL_INFO, "TCP", logMessage);   
   
-  free(crypto);
+  // @todo
+  // handle incoming data, unpack, and fill in payload to send back to client
+  payload = malloc(sizeof(CommandResponse));
+  on_message(&payload, data, connInfo->clientIp);
+
+  if (payload->responseLength > 0) {
+    int n = 0;
+    uint8_t * ptr = (uint8_t*) payload;
+    int written = 0;
+    int toWrite = payload->responseLength;
+
+    while(payload->responseLength > written)
+    {
+      n = send(sockfd, ptr, (toWrite - written), 0x4000);
+      if (n < 0) {
+        free(payload);
+        fprintf(stderr, "Socket send failed: %s\n", strerror(errno));
+        return -1;
+      }
+      ptr += 1;
+      written += n;
+    }  
+  }
+
+  free(payload);
   close(sockfd);
 
   pthread_mutex_lock(&GlobaSocketLock);
-  connectionWorkers[payload->workerId] = 0;
+  connectionWorkers[connInfo->workerId] = 0;
   pthread_mutex_unlock(&GlobaSocketLock);
 
-  snprintf(logMessage, sizeof(logMessage), "%s closed", payload->clientIp);
+  snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
   logger(LOG_LEVEL_INFO, "TCP", logMessage);   
 
-  
   pthread_exit(0);
   
   return NULL;
-  
-  // int res = dozor_unpack(crypto, payload->pinCode, packet, payload->on_message, payload->debug);
-  // if (res < 0) {
-  //   free(crypto);
-  //   close(sockfd);
-  //   pthread_exit(0);
-  //   return 0;
-  // }
 }
 
 void * startSocketListener(void * args) {
@@ -156,8 +161,6 @@ void * startSocketListener(void * args) {
         inet_ntop( AF_INET, &cli.sin_addr, clientIp, INET_ADDRSTRLEN );   
 
         strncpy(payload.clientIp, clientIp, sizeof(clientIp));
-        strncpy(payload.pinCode, "", sizeof(socketConfig->pinCode));
-        payload.siteId = socketConfig->siteId;
         payload.sockfd = newsockfd;
         payload.debug = socketConfig->debug;
         payload.on_message = socketConfig->on_message;
@@ -197,56 +200,6 @@ void * startSocketListener(void * args) {
 
   return NULL;
 }
-
-// // handle network connections
-// void* handle(void* arg) 
-// {
-//   int c;
-//   connectionInfo * conn = (connectionInfo*) arg;
-//   uint8_t packet[BUFFERSIZE];
-//   int sockfd = conn->sock;
-
-//   CryptoSession * crypto = malloc(sizeof(CryptoSession));
-//   if (crypto == NULL)
-//   {
-//     fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
-//     close(sockfd);
-//     return 0; 
-//   }
-
-//   c = read(sockfd, &packet, BUFFERSIZE);
-//   if (c < 0) {
-//     fprintf(stderr, "ERROR reading from socket: %s\n", strerror(errno));
-//     free(crypto);
-//     close(sockfd);
-//     return 0;
-//   }
-
-//   int res = dozor_unpack(crypto, conn, packet, &eventCallback, conn->debug);
-//   if (res < 0) {
-//     free(crypto);
-//     close(sockfd);
-//     return 0;
-//   }
-  
-//   pthread_mutex_lock(&writelock);
-
-//   short int commandId = answerDevice(sockfd, crypto, commands, conn->debug);
-
-//   if (commands != NULL) {
-//     if (commandId != -1 && commandId < commands->length)
-//     {
-//       commands->items[commandId].done = 1;  
-//     }
-//   }
-//   pthread_mutex_unlock(&writelock);
-
-//   close(sockfd);
-
-//   free(crypto);
-//   return (void *) 0;
-// }
-
 
 void startSocketService(struct SocketConfig * config) {
   pthread_mutex_init(&GlobaSocketLock, NULL);
