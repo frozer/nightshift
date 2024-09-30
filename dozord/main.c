@@ -163,7 +163,8 @@ int main(int argc, char **argv)
   action.sa_handler = term;
   sigaction(SIGTERM, &action, NULL);
 
-  struct AppConfig appConfig = initializeAppConfig();
+  struct AppConfig appConfig;
+  initializeAppConfig(&appConfig);
   appConfig.socketConfig.on_message = socket_message_callback;
 
   if (argc < 2) {

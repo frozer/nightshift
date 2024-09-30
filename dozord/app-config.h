@@ -10,6 +10,6 @@ struct AppConfig {
     unsigned int debug;
 };
 
-struct AppConfig initializeAppConfig();
+void initializeAppConfig(struct AppConfig *appConfig);
 
 #endif // APP_CONFIG_H
