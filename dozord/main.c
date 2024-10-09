@@ -51,9 +51,7 @@ static const char * optString = "l:k:s:m:p:h?:d";
 
 pthread_mutex_t writelock;
 
-// unsigned char * userKey;
-
-// static Commands * commands;
+static Commands * commands;
 
 volatile sig_atomic_t exitRequested = 0;
 
@@ -123,17 +121,17 @@ void displayHelp()
   printf("dozord %s\nUsage: ./dozord -s <site> -l <port|1111> -k <device pincode> -m <MQTT host|127.0.0.1> -p <MQTT port|1883> -d\n", VERSION);
 }
 
-// void initCommandsStore()
-// {
-//   commands = malloc(sizeof(Commands));
-//   if (commands == NULL)
-//   {
-//     fprintf(stderr, "Unable to allocate memory for commands: %s\n", strerror(errno));
-//     exit(-1);
-//   }
+void initCommandsStore()
+{
+  commands = malloc(sizeof(Commands));
+  if (commands == NULL)
+  {
+    fprintf(stderr, "Unable to allocate memory for commands: %s\n", strerror(errno));
+    exit(-1);
+  }
   
-//   commands->length = 0;
-// }
+  commands->length = 0;
+}
 
 void * socket_message_callback() {
 
@@ -147,16 +145,13 @@ void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mos
 	
   pthread_mutex_lock(&writelock);
   
-  // @todo
-  // readCommandsFromString(commands, (char *)message->payload, GlobalArgs.debug);
+  readCommandsFromString(commands, (char *)message->payload);
 
   pthread_mutex_unlock(&writelock);
 }
 
 int main(int argc, char **argv) 
-{ 
-  // pthread_t watcherWorker;
-
+{
   // handle SIG
   struct sigaction action;
   memset(&action, 0, sizeof(action));
@@ -191,7 +186,7 @@ int main(int argc, char **argv)
 
   pthread_mutex_init(&writelock, NULL);
 
-  // initCommandsStore();
+  initCommandsStore();
 
   // initialize MQTT
   initializeMQTT(&appConfig.mqttConfig, mqtt_message_callback);
@@ -210,5 +205,7 @@ int main(int argc, char **argv)
 
   pthread_exit(NULL);
 
+  free(commands);
+  
   return 0;
 } 
