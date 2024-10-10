@@ -65,7 +65,7 @@ typedef struct COMMON_EVENT {
 } CommonEvent;
 
 typedef struct EVENTS {
-  EventInfo * items[MAX_DEVICE_RECORDS];
+  EventInfo items[MAX_DEVICE_RECORDS];
   uint8_t length;
   int errorCode;
 } Events;

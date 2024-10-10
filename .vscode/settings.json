@@ -9,6 +9,7 @@
     "utils.h": "c",
     "command.h": "c",
     "logger.h": "c",
-    "app-config.h": "c"
+    "app-config.h": "c",
+    "dozor-crypto.h": "c"
   }
 }

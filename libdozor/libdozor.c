@@ -152,13 +152,20 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
   union rawMessage packet;
   DozorReport * deviceReport;
   EventInfo * eventInfo;
-  Events events;
+
+  Events *events = malloc(sizeof(Events));
+  if (events == NULL) {
+      fprintf(stderr, "Unable to allocate memory for events: %s\n", strerror(errno));
+      return NULL; // Return NULL on memory allocation failure
+  }
 
   if (crypto == NULL)
   {
     fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
-    return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_CRYPTO_SESSION; 
+    events->errorCode = HANDLER_UNABLE_TO_ALLOCATE_MEMORY_CRYPTO_SESSION; 
+    return events;
   }
+
   memcpy(&packet, raw, BUFFERSIZE);
 
   msgLength = strtol(packet.data.aLength, 0, 10) + 4;
@@ -167,8 +174,8 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
   if (initialized)
   {
     printf("Crypto session not initialized. Error - %d\n", initialized);
-    events.errorCode = HANDLER_CRYPTO_SESSION_NOT_INITIALIZED;
-    return &events;
+    events->errorCode = HANDLER_CRYPTO_SESSION_NOT_INITIALIZED;
+    return events;
   }
   
   ptr = (uint8_t*) packet.raw;
@@ -189,8 +196,8 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
   if (deviceReport == NULL)
   {
     fprintf(stderr, "Unable to allocate memory for report: %s\n", strerror(errno));
-    events.errorCode = HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
-    return &events;
+    events->errorCode = HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
+    return events;
   }
 
   result = getReport(deviceReport, crypto, (const unsigned char *) packet.raw, msgLength);
@@ -198,8 +205,8 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
   {
     fprintf(stderr, "ERROR: Unable to recognize message!!! Error - %d\n", result);
     free(deviceReport);
-    events.errorCode =  HANDLER_UNABLE_TO_RECOGNIZE_MESSAGE;
-    return &events;
+    events->errorCode =  HANDLER_UNABLE_TO_RECOGNIZE_MESSAGE;
+    return events;
   }
 
   if (debugMode)
@@ -222,16 +229,17 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
       printf("[%d] %s\n", eventInfo->eventType, eventInfo->event);
     }
 
-    events.length = 1;
-    events.errorCode = 0;
-    memcpy(&(events.items[0]), &eventInfo, sizeof(EventInfo));
+    events->length = 1;
+    events->errorCode = 0;
+    memcpy(&(events->items[0]), eventInfo, sizeof(EventInfo));
 
     free(eventInfo);
     free(deviceReport);
 
-    return &events;
+    return events;
   }
 
+  
   for (index = 0; index < deviceReport->eventTotals; index++)
   {
     eventInfo = malloc(sizeof(EventInfo));
@@ -247,15 +255,17 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
       printf("[%d] %s\n", eventInfo->eventType, eventInfo->event);
     }
     
-    memcpy(&(events.items[index]), &eventInfo, sizeof(EventInfo));
+    memcpy(&(events->items[index]), eventInfo, sizeof(EventInfo));
 
     free(eventInfo);
   }
 
-  events.errorCode = 0;
+  events->length = deviceReport->eventTotals;
+  events->errorCode = 0;
+
   free(deviceReport);
 
-  return &events;
+  return events;
 }
 
 unsigned short int dozor_pack(CommandResponse * command, 

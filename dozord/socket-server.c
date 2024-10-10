@@ -48,16 +48,13 @@ void * connectionCb(void * args) {
     pthread_exit(0);
     return 0;
   }
-
-  snprintf(logMessage, sizeof(logMessage), "%s %s", connInfo->clientIp, (char *) data);
-  logger(LOG_LEVEL_INFO, "TCP", logMessage);   
   
   // @todo
   // handle incoming data, unpack, and fill in payload to send back to client
   responsePayload = malloc(sizeof(CommandResponse));
   connInfo->on_message(&responsePayload, data, &connInfo->clientIp);
 
-  if (responsePayload->responseLength > 0) {
+  if (responsePayload != NULL && responsePayload->responseLength > 0) {
     int n = 0;
     uint8_t * ptr = (uint8_t*) responsePayload;
     int written = 0;
@@ -73,10 +70,11 @@ void * connectionCb(void * args) {
       }
       ptr += 1;
       written += n;
-    }  
+    }
+
+    free(responsePayload);  
   }
 
-  free(responsePayload);
   close(sockfd);
 
   pthread_mutex_lock(&GlobaSocketLock);
