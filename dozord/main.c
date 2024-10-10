@@ -110,7 +110,7 @@ void * publishEvent(void * args)
   free(payload->deviceIp);
   free(payload->data);
   free(payload);
-  
+
   pthread_exit(0);
 }
 
@@ -171,7 +171,7 @@ int socket_message_callback(CommandResponse * response, uint8_t * data, char * c
       snprintf(logMessage, sizeof(logMessage), "%s", events->items[index].event);
       logger(LOG_LEVEL_INFO, clientIp, logMessage);
       
-      strncpy(payload->deviceIp, clientIp, sizeof(clientIp));
+      strncpy(payload->deviceIp, clientIp, sizeof(char) * 16);
       memcpy(payload->data, &events->items[0], sizeof(EventInfo));
 
       if (pthread_create(&publishThread, NULL, publishEvent, payload) == 0)

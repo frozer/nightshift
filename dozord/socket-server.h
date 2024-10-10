@@ -27,7 +27,7 @@ struct SocketConfig {
 
 struct ConnectionPayload {
   int sockfd;
-  char clientIp[16];
+  char * clientIp[16];
   on_message_t on_message;
   unsigned int debug;
   unsigned short int workerId;

@@ -169,7 +169,7 @@ void getKeepAliveEvent(EventInfo* eventInfo, uint8_t site, DeviceInfo* info)
     return;
   }
 
-  const char * template = "{ \
+  const char * template = "{\
 \"site\":%d,\"typeId\":null,\
 \"event\":\"KeepAliveEvent\",\
 \"scope\":\"%s\",\"channel\":%d,\"sim\":%d,\"voltage\":%.2f,\"signal\":%d,\

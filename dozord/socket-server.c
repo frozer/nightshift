@@ -54,7 +54,8 @@ void * connectionCb(void * args) {
     fprintf(stderr, "Unable to allocate memory for CommandResponse: %s\n", strerror(errno));
     return -1;
   }
-  
+
+  // @todo handle return value, -1 - error
   connInfo->on_message(responsePayload, data, &connInfo->clientIp);
 
   if (responsePayload != NULL && responsePayload->responseLength > 0) {
@@ -84,9 +85,9 @@ void * connectionCb(void * args) {
   connectionWorkers[connInfo->workerId] = 0;
   pthread_mutex_unlock(&GlobaSocketLock);
 
-  // @todo log in debug mode only
-  snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
-  logger(LOG_LEVEL_INFO, "TCP", logMessage);   
+  // @todo going to be LOG_LEVEL_DEBUG
+  // snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
+  // logger(LOG_LEVEL_INFO, "TCP", logMessage);   
 
   pthread_exit(0);
   

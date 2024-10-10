@@ -24,8 +24,9 @@ void publish(char * topic, char * message, bool retainFlag) {
       snprintf(logMessage, sizeof(logMessage), "Failed to publish to topic \"%s\". Error code: %d", topic, rc);
       logger(LOG_LEVEL_ERROR, "MQTT", logMessage);
     } else {
-      snprintf(logMessage, sizeof(logMessage), "\"%s\" published to \"%s\"", message, topic);
-      logger(LOG_LEVEL_INFO, "MQTT", logMessage);
+      // snprintf(logMessage, sizeof(logMessage), "\"%s\" published to \"%s\"", message, topic);
+      // @todo going to be LOG_LEVEL_DEBUG
+      // logger(LOG_LEVEL_INFO, "MQTT", logMessage);
     }
   } else {
     // @todo build outgoing queue
