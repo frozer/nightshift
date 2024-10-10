@@ -39,8 +39,8 @@ void * connectionCb(void * args) {
   uint8_t data[BUFFERSIZE];
   char logMessage[2048];
   int sockfd = connInfo->sockfd; 
-  CommandResponse * payload;
-
+  CommandResponse * responsePayload;
+  
   int c = read(sockfd, &data, BUFFERSIZE);
   if (c < 0) {
     fprintf(stderr, "ERROR reading from socket: %s\n", strerror(errno));
@@ -54,20 +54,20 @@ void * connectionCb(void * args) {
   
   // @todo
   // handle incoming data, unpack, and fill in payload to send back to client
-  payload = malloc(sizeof(CommandResponse));
-  on_message(&payload, data, connInfo->clientIp);
+  responsePayload = malloc(sizeof(CommandResponse));
+  connInfo->on_message(&responsePayload, data, &connInfo->clientIp);
 
-  if (payload->responseLength > 0) {
+  if (responsePayload->responseLength > 0) {
     int n = 0;
-    uint8_t * ptr = (uint8_t*) payload;
+    uint8_t * ptr = (uint8_t*) responsePayload;
     int written = 0;
-    int toWrite = payload->responseLength;
+    int toWrite = responsePayload->responseLength;
 
-    while(payload->responseLength > written)
+    while(responsePayload->responseLength > written)
     {
       n = send(sockfd, ptr, (toWrite - written), 0x4000);
       if (n < 0) {
-        free(payload);
+        free(responsePayload);
         fprintf(stderr, "Socket send failed: %s\n", strerror(errno));
         return -1;
       }
@@ -76,7 +76,7 @@ void * connectionCb(void * args) {
     }  
   }
 
-  free(payload);
+  free(responsePayload);
   close(sockfd);
 
   pthread_mutex_lock(&GlobaSocketLock);

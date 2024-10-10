@@ -17,8 +17,6 @@
 #ifndef NIGHTSHIFT_MQTT_H
 #define NIGHTSHIFT_MQTT_H
 
-#define MQTT_HOST "localhost"
-#define MQTT_PORT 1883
 #define MQTT_KEEPALIVE_SEC 60
 #define MQTT_RECONNECT_SEC 3
 

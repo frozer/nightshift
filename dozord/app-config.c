@@ -1,8 +1,15 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include "app-config.h"
 #include "logger.h"
+
+void displayHelp()
+{
+  printf("dozord\nUsage: ./dozord -s <site> -l <port|1111> -k <device pincode> -m <MQTT host|127.0.0.1> -p <MQTT port|1883> -d\n");
+}
+
 
 void processCommandLineOptions(int argc, char **argv, struct AppConfig *appConfig) {
     int opt;
@@ -15,12 +22,11 @@ void processCommandLineOptions(int argc, char **argv, struct AppConfig *appConfi
                 break;
 
             case 'k':
-                strncpy(appConfig->socketConfig.pinCode, optarg, sizeof(appConfig->socketConfig.pinCode));
+                strncpy(appConfig->pinCode, optarg, sizeof(appConfig->pinCode));
                 break;
 
             case 's':
-                appConfig->socketConfig.siteId = strtol(optarg, 0, 10);
-                appConfig->mqttConfig.siteId = appConfig->socketConfig.siteId;
+                appConfig->mqttConfig.siteId = strtol(optarg, 0, 10);
                 break;
 
             case 'm':
@@ -48,16 +54,10 @@ void processCommandLineOptions(int argc, char **argv, struct AppConfig *appConfi
     }
 }
 
-#define DEFAULT_PORT 1111
-#define DEBUG 0
-#define AGENT_ID "80d7be61-d81d-4aac-9012-6729b6392a89"
-#define MQTT_HOST "127.0.0.1"
-#define MQTT_PORT 1883
-
 void initializeAppConfig(struct AppConfig *appConfig) {
     appConfig->socketConfig.port = DEFAULT_PORT;
-    appConfig->socketConfig.siteId = 0;
-    strncpy(appConfig->socketConfig.pinCode, "", sizeof(appConfig->socketConfig.pinCode));
+    appConfig->siteId = 0;
+    strncpy(appConfig->pinCode, "", sizeof(appConfig->pinCode));
     appConfig->socketConfig.debug = DEBUG;
     appConfig->socketConfig.on_message = NULL;
 
@@ -72,12 +72,11 @@ void initializeAppConfig(struct AppConfig *appConfig) {
     char* envSiteKey = getenv("DOZOR_SITE_KEY");
 
     if (envSiteId != NULL) {
-        appConfig.socketConfig.siteId = strtol(envSiteId, NULL, 10);
-        appConfig.mqttConfig.siteId = appConfig.socketConfig.siteId;
+        appConfig->siteId = strtol(envSiteId, NULL, 10);
+        appConfig->mqttConfig.siteId = appConfig->siteId;
     }
 
     if (envSiteKey != NULL) {
-        strncpy(appConfig.socketConfig.pinCode, envSiteKey, sizeof(appConfig.socketConfig.pinCode));
+        strncpy(appConfig->pinCode, envSiteKey, sizeof(appConfig->pinCode));
     }
-
 }

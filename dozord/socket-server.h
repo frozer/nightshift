@@ -14,22 +14,26 @@
   You should have received a copy of the GNU General Public License
   along with NightShift. If not, see <https://www.gnu.org/licenses/>. 
 */
+#ifndef SOCKET_SERVER_CONFIG_H
+#define SOCKET_SERVER_CONFIG_H
+
+typedef void (*on_message_t)(void *responsePayload, void *data, char *clientIp);
 
 struct SocketConfig {
   unsigned int port;
-  unsigned int siteId;
-  char pinCode[36];
-  void * on_message;
+  on_message_t on_message;
   unsigned int debug;
 };
 
 struct ConnectionPayload {
   int sockfd;
   char clientIp[16];
-  void * on_message;
+  on_message_t on_message;
   unsigned int debug;
   unsigned short int workerId;
 };
 
 void startSocketService(struct SocketConfig * config);
 void stopSocketService();
+
+#endif // SOCKET_SERVER_CONFIG_H

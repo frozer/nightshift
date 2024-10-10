@@ -5,6 +5,8 @@
     "dozor.h": "c",
     "socket-server.h": "c",
     "signal.h": "c",
-    "mosquitto.h": "c"
+    "mosquitto.h": "c",
+    "utils.h": "c",
+    "command.h": "c"
   }
 }

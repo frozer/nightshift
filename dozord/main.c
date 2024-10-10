@@ -27,7 +27,6 @@
 #include <mosquitto.h>
 #include <signal.h>
 #include <dozor.h>
-#include "answer.h"
 #include "command.h"
 #include "nightshift-mqtt.h"
 #include "logger.h"
@@ -35,22 +34,13 @@
 #include "socket-server.h"
 
 #define SA struct sockaddr
-#define DEFAULT_PORT 1111
-#define DEFAULT_COMMANDS "commands.txt"
-#define DEBUG 0
-#define VERSION "0.8.1"
-#define AGENT_ID "80d7be61-d81d-4aac-9012-6729b6392a89"
-
-struct AppConfig {
-  struct SocketConfig socketConfig;
-  struct MQTTConfig mqttConfig;
-  unsigned int debug;
-};
+#define DEFAULT_ANSWER ""
 
 static const char * optString = "l:k:s:m:p:h?:d";
 
-pthread_mutex_t writelock;
+pthread_mutex_t commandsWriteLock;
 
+static struct AppConfig appConfig;
 static Commands * commands;
 
 volatile sig_atomic_t exitRequested = 0;
@@ -60,65 +50,57 @@ void term(int signum)
    exitRequested = 1;
 }
 
-// void eventCallback(connectionInfo * conn, EventInfo* eventInfo)
-// {
-//   time_t ticks;
-//   char receivedTimestamp[25] = {0};
-//   char eventReport[2048] = {0};
-//   char report[3072] = {0};
-//   char topic[256] = {0};
-//   bool retainFlag = false;
-
-//   ticks = time(NULL);
-  
-//   sprintf(receivedTimestamp, "%.24s", ctime(&ticks));  
-//   sprintf(eventReport, PAYLOAD_JSON, conn->clientIp, receivedTimestamp, eventInfo->event);
-//   sprintf(report, MESSAGE_JSON, AGENT_ID, eventReport);
-
-//   switch(eventInfo->eventType)
-//   {
-//     case ENUM_EVENT_TYPE_REPORT:
-//       sprintf(topic, REPORT_TOPIC, eventInfo->siteId);
-//       break;
-
-//     case ENUM_EVENT_TYPE_COMMAND_RESPONSE:
-//       sprintf(topic, COMMAND_RESULT_TOPIC, eventInfo->siteId);
-//       break;
-    
-//     case ENUM_EVENT_TYPE_KEEPALIVE:
-//       sprintf(topic, HEARBEAT_TOPIC, eventInfo->siteId);
-//       retainFlag = true;
-//       break;
-
-//     case ENUM_EVENT_TYPE_ZONEINFO:
-//       sprintf(topic, ZONE_TOPIC, eventInfo->siteId, eventInfo->sourceId);
-//       retainFlag = true;
-//       break;
-
-//     case ENUM_EVENT_TYPE_SECTIONINFO:
-//       sprintf(topic, SECTION_TOPIC, eventInfo->siteId, eventInfo->sourceId);
-//       retainFlag = true;
-//       break;
-
-//     case ENUM_EVENT_TYPE_ARM_DISARM:
-//       sprintf(topic, ARM_DISARM_TOPIC, eventInfo->siteId);
-//       retainFlag = true;
-//       break;
-
-//     default:    
-//       sprintf(topic, EVENT_TOPIC, eventInfo->siteId);
-//   }
-
-//   if (GlobalMQTTConnected)
-//   {
-//     mosquitto_publish(mosq, NULL, topic, strlen(report), report, 0, retainFlag);
-//     printf(PAYLOAD_JSON, conn->clientIp, receivedTimestamp, eventInfo->event);
-//   }  
-// }
-
-void displayHelp()
+void publishEvent(char * clientIp[16], EventInfo* eventInfo)
 {
-  printf("dozord %s\nUsage: ./dozord -s <site> -l <port|1111> -k <device pincode> -m <MQTT host|127.0.0.1> -p <MQTT port|1883> -d\n", VERSION);
+  time_t ticks;
+  char receivedTimestamp[25] = {0};
+  char eventReport[2048] = {0};
+  char report[3072] = {0};
+  char topic[256] = {0};
+  bool retainFlag = false;
+
+  ticks = time(NULL);
+  
+  sprintf(receivedTimestamp, "%.24s", ctime(&ticks));  
+  sprintf(eventReport, PAYLOAD_JSON, clientIp, receivedTimestamp, eventInfo->event);
+  sprintf(report, MESSAGE_JSON, AGENT_ID, eventReport);
+
+  switch(eventInfo->eventType)
+  {
+    case ENUM_EVENT_TYPE_REPORT:
+      sprintf(topic, REPORT_TOPIC, eventInfo->siteId);
+      break;
+
+    case ENUM_EVENT_TYPE_COMMAND_RESPONSE:
+      sprintf(topic, COMMAND_RESULT_TOPIC, eventInfo->siteId);
+      break;
+    
+    case ENUM_EVENT_TYPE_KEEPALIVE:
+      sprintf(topic, HEARBEAT_TOPIC, eventInfo->siteId);
+      retainFlag = true;
+      break;
+
+    case ENUM_EVENT_TYPE_ZONEINFO:
+      sprintf(topic, ZONE_TOPIC, eventInfo->siteId, eventInfo->sourceId);
+      retainFlag = true;
+      break;
+
+    case ENUM_EVENT_TYPE_SECTIONINFO:
+      sprintf(topic, SECTION_TOPIC, eventInfo->siteId, eventInfo->sourceId);
+      retainFlag = true;
+      break;
+
+    case ENUM_EVENT_TYPE_ARM_DISARM:
+      sprintf(topic, ARM_DISARM_TOPIC, eventInfo->siteId);
+      retainFlag = true;
+      break;
+
+    default:    
+      sprintf(topic, EVENT_TOPIC, eventInfo->siteId);
+  }
+
+  publish(topic, report, retainFlag);
+  // printf(PAYLOAD_JSON, conn->clientIp, receivedTimestamp, eventInfo->event);
 }
 
 void initCommandsStore()
@@ -133,8 +115,48 @@ void initCommandsStore()
   commands->length = 0;
 }
 
-void * socket_message_callback() {
+int socket_message_callback(CommandResponse * response, uint8_t * data, char * clientIp[16]) {
+  unsigned short int index = 0;
+  short int res = -1;
 
+  CryptoSession * crypto = malloc(sizeof(CryptoSession));
+  if (crypto == NULL)
+  {
+    fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
+    return -1;
+  }
+
+  Events * events = dozor_unpackV2(crypto, data, appConfig.pinCode, appConfig.debug);
+
+  if (events->errorCode == 0) {
+    // @todo extract into separate thread
+    for (index = 0; index < events->length; index++) {
+      publishEvent(clientIp, events->items[index]);
+    }
+
+    pthread_mutex_lock(&commandsWriteLock);
+    short int found = getNextCommandIdx(commands);
+    if (found != -1) {
+      if ((commands->items[found].done != 1) && (strlen(commands->items[found].value) > 1)) {
+        res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value, appConfig.debug);
+      } else {
+        res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER, appConfig.debug);
+      }
+    } else {
+      res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER, appConfig.debug);
+    }
+    pthread_mutex_unlock(&commandsWriteLock);
+
+    if (response == NULL || res == -1) {
+      free(crypto);
+      fprintf(stderr, "Unable to encrypt command!\n");
+      // @todo fixme
+      return -1;
+    }
+  } else {
+    // @todo handle error code value
+  }
+  free(crypto);
 }
 
 void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
@@ -143,11 +165,11 @@ void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mos
   snprintf(logMessage, sizeof(logMessage), "MQTT:: New message received, topic - \"%s\", \"%s\"", (char *) message->topic, (char *) message->payload);
   logger(LOG_LEVEL_INFO, "-", logMessage);
 	
-  pthread_mutex_lock(&writelock);
+  pthread_mutex_lock(&commandsWriteLock);
   
   readCommandsFromString(commands, (char *)message->payload);
 
-  pthread_mutex_unlock(&writelock);
+  pthread_mutex_unlock(&commandsWriteLock);
 }
 
 int main(int argc, char **argv) 
@@ -158,7 +180,7 @@ int main(int argc, char **argv)
   action.sa_handler = term;
   sigaction(SIGTERM, &action, NULL);
 
-  struct AppConfig appConfig;
+  
   initializeAppConfig(&appConfig);
   appConfig.socketConfig.on_message = socket_message_callback;
 
@@ -166,25 +188,26 @@ int main(int argc, char **argv)
     printf("Usage: ./dozord -h\n");
     return 0;
   }
+
   processCommandLineOptions(argc, argv, &appConfig);
 
-  if (appConfig.socketConfig.siteId == 0)
+  if (appConfig.mqttConfig.siteId == 0)
   {
     logger(LOG_LEVEL_ERROR, "-", "Guard device ID is not set. Exiting.");
 		return 0;  
   }
 
-  if (appConfig.socketConfig.pinCode == "")
+  if (appConfig.pinCode == "")
   {
     logger(LOG_LEVEL_ERROR, "-", "Guard device pincode is not set. Exiting.");
 		return 0;  
   }
 
   char logMessage[256];
-  snprintf(logMessage, sizeof(logMessage), "Guard device ID %d", appConfig.socketConfig.siteId);
+  snprintf(logMessage, sizeof(logMessage), "Guard device ID %d", appConfig.mqttConfig.siteId);
   logger(LOG_LEVEL_INFO, "-", logMessage);
 
-  pthread_mutex_init(&writelock, NULL);
+  pthread_mutex_init(&commandsWriteLock, NULL);
 
   initCommandsStore();
 
@@ -197,7 +220,7 @@ int main(int argc, char **argv)
     
   }
   
-  pthread_mutex_destroy(&writelock);
+  pthread_mutex_destroy(&commandsWriteLock);
 
   stopSocketService();
   
