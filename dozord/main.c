@@ -50,8 +50,14 @@ void term(int signum)
    exitRequested = 1;
 }
 
-void publishEvent(char * clientIp[16], EventInfo* eventInfo)
+struct Event {
+  char * deviceIp;
+  EventInfo * data;
+};
+
+void * publishEvent(void * args)
 {
+  struct Event * payload = (struct Event *) args;
   time_t ticks;
   char receivedTimestamp[25] = {0};
   char eventReport[2048] = {0};
@@ -62,45 +68,50 @@ void publishEvent(char * clientIp[16], EventInfo* eventInfo)
   ticks = time(NULL);
   
   sprintf(receivedTimestamp, "%.24s", ctime(&ticks));  
-  sprintf(eventReport, PAYLOAD_JSON, clientIp, receivedTimestamp, eventInfo->event);
+  sprintf(eventReport, PAYLOAD_JSON, payload->deviceIp, receivedTimestamp, payload->data->event);
   sprintf(report, MESSAGE_JSON, AGENT_ID, eventReport);
 
-  switch(eventInfo->eventType)
+  switch(payload->data->eventType)
   {
     case ENUM_EVENT_TYPE_REPORT:
-      sprintf(topic, REPORT_TOPIC, eventInfo->siteId);
+      sprintf(topic, REPORT_TOPIC, payload->data->siteId);
       break;
 
     case ENUM_EVENT_TYPE_COMMAND_RESPONSE:
-      sprintf(topic, COMMAND_RESULT_TOPIC, eventInfo->siteId);
+      sprintf(topic, COMMAND_RESULT_TOPIC, payload->data->siteId);
       break;
     
     case ENUM_EVENT_TYPE_KEEPALIVE:
-      sprintf(topic, HEARBEAT_TOPIC, eventInfo->siteId);
+      sprintf(topic, HEARBEAT_TOPIC, payload->data->siteId);
       retainFlag = true;
       break;
 
     case ENUM_EVENT_TYPE_ZONEINFO:
-      sprintf(topic, ZONE_TOPIC, eventInfo->siteId, eventInfo->sourceId);
+      sprintf(topic, ZONE_TOPIC, payload->data->siteId, payload->data->sourceId);
       retainFlag = true;
       break;
 
     case ENUM_EVENT_TYPE_SECTIONINFO:
-      sprintf(topic, SECTION_TOPIC, eventInfo->siteId, eventInfo->sourceId);
+      sprintf(topic, SECTION_TOPIC, payload->data->siteId, payload->data->sourceId);
       retainFlag = true;
       break;
 
     case ENUM_EVENT_TYPE_ARM_DISARM:
-      sprintf(topic, ARM_DISARM_TOPIC, eventInfo->siteId);
+      sprintf(topic, ARM_DISARM_TOPIC, payload->data->siteId);
       retainFlag = true;
       break;
 
     default:    
-      sprintf(topic, EVENT_TOPIC, eventInfo->siteId);
+      sprintf(topic, EVENT_TOPIC, payload->data->siteId);
   }
 
   publish(topic, report, retainFlag);
-  // printf(PAYLOAD_JSON, conn->clientIp, receivedTimestamp, eventInfo->event);
+
+  free(payload->deviceIp);
+  free(payload->data);
+  free(payload);
+  
+  pthread_exit(0);
 }
 
 void initCommandsStore()
@@ -115,24 +126,59 @@ void initCommandsStore()
   commands->length = 0;
 }
 
-int socket_message_callback(CommandResponse * response, uint8_t * data, char * clientIp[16]) {
+int socket_message_callback(CommandResponse * response, uint8_t * data, char * clientIp) {
   unsigned short int index = 0;
   short int res = -1;
+  char logMessage[2048];
+  
+  struct Event *payload = malloc(sizeof(struct Event));
+  if (payload == NULL) {
+    fprintf(stderr, "Unable to allocate memory for Event: %s\n", strerror(errno));
+    return -1;
+  }
+
+  payload->deviceIp = malloc(16 * sizeof(char));
+  if (payload->deviceIp == NULL) {
+    fprintf(stderr, "Unable to allocate memory for Event device ip: %s\n", strerror(errno));
+    free(payload);
+    return -1;
+  }
+
+  payload->data = malloc(sizeof(EventInfo));
+  if (payload->data == NULL) {
+    fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
+    free(payload->deviceIp);
+    free(payload);
+    return -1;
+  }
 
   CryptoSession * crypto = malloc(sizeof(CryptoSession));
   if (crypto == NULL)
   {
     fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
+    free(payload->deviceIp);
+    free(payload->data);
+    free(payload);
     return -1;
   }
 
   Events * events = dozor_unpackV2(crypto, data, appConfig.pinCode, appConfig.debug);
 
-  if (events->errorCode == 0) {
-    // @todo extract into separate thread
+  if (events != NULL && events->errorCode == 0) {
     for (index = 0; index < events->length; index++) {
-      publishEvent(clientIp, events->items[index]);
+      pthread_t publishThread = 0;
+
+      snprintf(logMessage, sizeof(logMessage), "%s", events->items[index].event);
+      logger(LOG_LEVEL_INFO, clientIp, logMessage);
+      
+      strncpy(payload->deviceIp, clientIp, sizeof(clientIp));
+      memcpy(payload->data, &events->items[0], sizeof(EventInfo));
+
+      if (pthread_create(&publishThread, NULL, publishEvent, payload) == 0)
+        pthread_detach(publishThread);
     }
+
+    free(events);
 
     pthread_mutex_lock(&commandsWriteLock);
     short int found = getNextCommandIdx(commands);
@@ -148,13 +194,19 @@ int socket_message_callback(CommandResponse * response, uint8_t * data, char * c
     pthread_mutex_unlock(&commandsWriteLock);
 
     if (response == NULL || res == -1) {
+      free(payload->deviceIp);
+      free(payload->data);
+      free(payload);
       free(crypto);
+
       fprintf(stderr, "Unable to encrypt command!\n");
-      // @todo fixme
       return -1;
     }
   } else {
     // @todo handle error code value
+    free(payload->deviceIp);
+    free(payload->data);
+    free(payload);
   }
   free(crypto);
 }
@@ -184,11 +236,6 @@ int main(int argc, char **argv)
   initializeAppConfig(&appConfig);
   appConfig.socketConfig.on_message = socket_message_callback;
 
-  if (argc < 2) {
-    printf("Usage: ./dozord -h\n");
-    return 0;
-  }
-
   processCommandLineOptions(argc, argv, &appConfig);
 
   if (appConfig.mqttConfig.siteId == 0)
@@ -211,7 +258,6 @@ int main(int argc, char **argv)
 
   initCommandsStore();
 
-  // initialize MQTT
   initializeMQTT(&appConfig.mqttConfig, mqtt_message_callback);
 
   startSocketService(&appConfig.socketConfig);

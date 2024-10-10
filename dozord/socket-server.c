@@ -49,10 +49,13 @@ void * connectionCb(void * args) {
     return 0;
   }
   
-  // @todo
-  // handle incoming data, unpack, and fill in payload to send back to client
   responsePayload = malloc(sizeof(CommandResponse));
-  connInfo->on_message(&responsePayload, data, &connInfo->clientIp);
+  if (responsePayload == NULL) {
+    fprintf(stderr, "Unable to allocate memory for CommandResponse: %s\n", strerror(errno));
+    return -1;
+  }
+  
+  connInfo->on_message(responsePayload, data, &connInfo->clientIp);
 
   if (responsePayload != NULL && responsePayload->responseLength > 0) {
     int n = 0;
@@ -72,15 +75,16 @@ void * connectionCb(void * args) {
       written += n;
     }
 
-    free(responsePayload);  
+      
   }
-
+  free(responsePayload);
   close(sockfd);
 
   pthread_mutex_lock(&GlobaSocketLock);
   connectionWorkers[connInfo->workerId] = 0;
   pthread_mutex_unlock(&GlobaSocketLock);
 
+  // @todo log in debug mode only
   snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
   logger(LOG_LEVEL_INFO, "TCP", logMessage);   
 
@@ -143,7 +147,7 @@ void * startSocketListener(void * args) {
   {
     if (i < 5) {
       if (!connectionWorkers[i]) {
-
+        // @todo make it pointer
         struct ConnectionPayload payload;
 
         // Accept the data packet from client and verification
