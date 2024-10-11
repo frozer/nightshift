@@ -1,13 +1,11 @@
 Makefile
 Makefile.in
-*.ac
 autom4te.cache
 .deps
 .libs
 aclocal.m4
 compile
 config.*
-configure
 depcomp
 *.lo
 *.la
@@ -20,6 +18,6 @@ stamp-h1
 *.tar.gz
 dozord/dozord
 tools/parser
-configure~
+configure.in
 .aider*
 dist
