@@ -20,6 +20,5 @@ dozord/dozord
 tools/parser
 configure.in
 .aider*
-dist
 configure
 configure~
