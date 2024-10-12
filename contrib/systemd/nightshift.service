@@ -1,0 +1,19 @@
+[Unit]
+Description=Nightshift Daemon
+DefaultDependencies=no
+Wants=mosquitto.service
+After=network.target mosquitto.service
+
+[Service]
+Type=simple
+User=dim
+Group=dim
+Environment='DOZOR_SITE_ID=11' 'DOZOR_SITE_KEY=01234567890'
+ExecStart=/opt/nightshift/bin/dozord
+TimeoutStartSec=0
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
