@@ -46,3 +46,11 @@
 
 {"deviceIp":"aa.bb.cc.dd","received":"Sun Dec  4 20:06:50 2022","payload":{"site":00,"typeId":59,"timestamp":"Sun Mar 11 12:06:41 2040","data":"0021","event":"SystemMaintenance","scope":"Security"}}
 ```
+
+* Странные события
+```json
+{"site":00,"typeId":21,"timestamp":"Sat Jul 12 21:06:25 2087","data":"0021","event":"KeepAliveEvent","scope":"Common"}
+{"site":00,"typeId":22,"timestamp":"Mon Jan  1 03:00:33 2001","data":"0021","event":"KeepAliveEvent","scope":"Common"}
+{"site":00,"typeId":0,"timestamp":"Mon Jan  1 03:00:33 2001","data":"21","event":"UnknownEvent-0x0","scope":"Common"}
+{"site":00,"typeId":37,"timestamp":"Mon Jan  1 03:00:33 2001","data":"0210000021","temp":16,"event":"Report","scope":"Common"}
+```
