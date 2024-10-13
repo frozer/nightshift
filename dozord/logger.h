@@ -22,5 +22,6 @@ void logger(const char* level, const char* source, const char* message);
 #define LOG_LEVEL_INFO "INFO"
 #define LOG_LEVEL_WARNING "WARNING"
 #define LOG_LEVEL_ERROR "ERROR"
+#define LOG_LEVEL_DEBUG "DEBUG"
 
 #endif

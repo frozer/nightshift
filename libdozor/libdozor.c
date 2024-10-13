@@ -170,11 +170,17 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
 
   msgLength = strtol(packet.data.aLength, 0, 10) + 4;
   
-  short int initialized = initializeDozorCrypto(crypto, (const unsigned char *) pinCode, (const unsigned char *) packet.raw, msgLength - 4, debugMode);
-  if (initialized)
+  short int initError = initializeDozorCrypto(
+    crypto,
+    (const unsigned char *) pinCode,
+    (const unsigned char *) packet.raw,
+    msgLength - 4, // strtol(packet.data.aLength, 0, 10)
+    debugMode 
+  );
+  if (initError)
   {
-    printf("Crypto session not initialized. Error - %d\n", initialized);
-    events->errorCode = HANDLER_CRYPTO_SESSION_NOT_INITIALIZED;
+    printf("Crypto session not initialized. Error - %d\n", initError);
+    events->errorCode = initError;
     return events;
   }
   

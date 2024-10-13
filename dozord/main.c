@@ -126,7 +126,7 @@ void initCommandsStore()
   commands->length = 0;
 }
 
-int socket_message_callback(CommandResponse * response, uint8_t * data, char * clientIp) {
+void * socket_message_callback(CommandResponse * response, uint8_t * data, char * clientIp) {
   unsigned short int index = 0;
   short int res = -1;
   char logMessage[2048];
@@ -134,14 +134,14 @@ int socket_message_callback(CommandResponse * response, uint8_t * data, char * c
   struct Event *payload = malloc(sizeof(struct Event));
   if (payload == NULL) {
     fprintf(stderr, "Unable to allocate memory for Event: %s\n", strerror(errno));
-    return -1;
+    return (void *) -1;
   }
 
   payload->deviceIp = malloc(16 * sizeof(char));
   if (payload->deviceIp == NULL) {
     fprintf(stderr, "Unable to allocate memory for Event device ip: %s\n", strerror(errno));
     free(payload);
-    return -1;
+    return (void *) -1;
   }
 
   payload->data = malloc(sizeof(EventInfo));
@@ -149,7 +149,7 @@ int socket_message_callback(CommandResponse * response, uint8_t * data, char * c
     fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
     free(payload->deviceIp);
     free(payload);
-    return -1;
+    return (void *) -1;
   }
 
   CryptoSession * crypto = malloc(sizeof(CryptoSession));
@@ -159,7 +159,7 @@ int socket_message_callback(CommandResponse * response, uint8_t * data, char * c
     free(payload->deviceIp);
     free(payload->data);
     free(payload);
-    return -1;
+    return (void *) -1;
   }
 
   Events * events = dozor_unpackV2(crypto, data, appConfig.pinCode, appConfig.debug);
@@ -183,16 +183,18 @@ int socket_message_callback(CommandResponse * response, uint8_t * data, char * c
     pthread_mutex_lock(&commandsWriteLock);
     short int found = getNextCommandIdx(commands);
     if (found != -1) {
-      if ((commands->items[found].done != 1) && (strlen(commands->items[found].value) > 1)) {
-        res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value, appConfig.debug);
-      } else {
-        res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER, appConfig.debug);
-      }
+      snprintf(logMessage, sizeof(logMessage), "Sending cmd - \"%s\"", commands->items[found].value);
+      logger(LOG_LEVEL_INFO, "-", logMessage);
+      res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value, appConfig.debug);
+      
+      // @todo mark command as "sent", make it "done" once device returns command execution result
+      commands->items[found].done = 1; 
+      pthread_mutex_unlock(&commandsWriteLock);
+
     } else {
       res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER, appConfig.debug);
     }
-    pthread_mutex_unlock(&commandsWriteLock);
-
+    
     if (response == NULL || res == -1) {
       free(payload->deviceIp);
       free(payload->data);
@@ -200,22 +202,27 @@ int socket_message_callback(CommandResponse * response, uint8_t * data, char * c
       free(crypto);
 
       fprintf(stderr, "Unable to encrypt command!\n");
-      return -1;
+      return (void *) -1;
     }
   } else {
     // @todo handle error code value
     free(payload->deviceIp);
     free(payload->data);
     free(payload);
+    free(crypto);
+
+    return (void *) events->errorCode;
   }
   free(crypto);
+
+  return (void *) 0;
 }
 
 void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {
   char logMessage[256];
-  snprintf(logMessage, sizeof(logMessage), "MQTT:: New message received, topic - \"%s\", \"%s\"", (char *) message->topic, (char *) message->payload);
-  logger(LOG_LEVEL_INFO, "-", logMessage);
+  snprintf(logMessage, sizeof(logMessage), "Command - %s", (char *) message->payload);
+  logger(LOG_LEVEL_INFO, "MQTT", logMessage);
 	
   pthread_mutex_lock(&commandsWriteLock);
   

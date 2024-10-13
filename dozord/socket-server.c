@@ -58,7 +58,7 @@ void * connectionCb(void * args) {
   // @todo handle return value, -1 - error
   connInfo->on_message(responsePayload, data, &connInfo->clientIp);
 
-  if (responsePayload != NULL && responsePayload->responseLength > 0) {
+  if (responsePayload != NULL) {
     int n = 0;
     uint8_t * ptr = (uint8_t*) responsePayload;
     int written = 0;
@@ -70,15 +70,17 @@ void * connectionCb(void * args) {
       if (n < 0) {
         free(responsePayload);
         fprintf(stderr, "Socket send failed: %s\n", strerror(errno));
+        close(sockfd);
         return -1;
       }
       ptr += 1;
       written += n;
     }
 
-      
+     free(responsePayload);  
   }
-  free(responsePayload);
+
+ 
   close(sockfd);
 
   pthread_mutex_lock(&GlobaSocketLock);
