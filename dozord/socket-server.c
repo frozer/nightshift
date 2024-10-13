@@ -34,6 +34,25 @@ pthread_t connectionWorkers[5] = {0};
 unsigned int socketExitRequested = 0;
 pthread_mutex_t GlobaSocketLock;
 
+void log_incoming_data(const char *clientIp, uint8_t *data, int data_length) {
+    char logMessage[BUFFERSIZE * 3];
+    int offset = 0;
+
+    // Iterate over each byte of the data and append its hex representation to logMessage
+    for (int i = 0; i < data_length; i++) {
+        offset += snprintf(logMessage + offset, sizeof(logMessage) - offset, "%02x ", data[i]);
+        if (offset >= sizeof(logMessage)) {
+            break;  // Prevent buffer overflow, stop if we exceed the buffer size
+        }
+    }
+
+    // Ensure the string is null-terminated
+    logMessage[offset - 1] = '\0';  // Replace the last space with a null terminator
+
+    // Use the logger tool to log the incoming data
+    logger(LOG_LEVEL_INFO, clientIp, logMessage);
+}
+
 void * connectionCb(void * args) {
   struct ConnectionPayload * connInfo = (struct ConnectionPayload *) args;
   uint8_t data[BUFFERSIZE];
@@ -49,6 +68,8 @@ void * connectionCb(void * args) {
     return 0;
   }
   
+  log_incoming_data(&connInfo->clientIp, (uint8_t *)data, c);
+
   responsePayload = malloc(sizeof(CommandResponse));
   if (responsePayload == NULL) {
     fprintf(stderr, "Unable to allocate memory for CommandResponse: %s\n", strerror(errno));
