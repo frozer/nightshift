@@ -44,6 +44,7 @@ void processCommandLineOptions(int argc, char **argv, struct AppConfig *appConfi
                 break;
 
             case 'd':
+                appConfig->debug = 1;
                 appConfig->mqttConfig.debug = 1;
                 appConfig->socketConfig.debug = 1;
                 break;

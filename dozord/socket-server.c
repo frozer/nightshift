@@ -30,7 +30,7 @@
 #include "logger.h"
 
 pthread_t ServiceThreadId;
-pthread_t connectionWorkers[5] = {0};
+pthread_t connectionWorkers[MAX_CONN] = {0};
 unsigned int socketExitRequested = 0;
 pthread_mutex_t GlobaSocketLock;
 
@@ -98,10 +98,10 @@ void * connectionCb(void * args) {
       written += n;
     }
 
-     free(responsePayload);  
+    logger(LOG_LEVEL_DEBUG, "TCP", "Data sent.");     
   }
 
- 
+  free(responsePayload);
   close(sockfd);
 
   pthread_mutex_lock(&GlobaSocketLock);
@@ -109,8 +109,8 @@ void * connectionCb(void * args) {
   pthread_mutex_unlock(&GlobaSocketLock);
 
   // @todo going to be LOG_LEVEL_DEBUG
-  // snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
-  // logger(LOG_LEVEL_INFO, "TCP", logMessage);   
+  snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
+  logger(LOG_LEVEL_DEBUG, "TCP", logMessage);   
 
   pthread_exit(0);
   
@@ -169,8 +169,8 @@ void * startSocketListener(void * args) {
 
   while(!socketExitRequested)
   {
-    if (i < 5) {
-      if (!connectionWorkers[i]) {
+    if (i < MAX_CONN) {
+      if (connectionWorkers[i] == 0) {
         // @todo make it pointer
         struct ConnectionPayload payload;
 
@@ -204,7 +204,12 @@ void * startSocketListener(void * args) {
       i++;
     
     } else {
-      i = 0;
+      logger(LOG_LEVEL_INFO, "TCP", "No more connections left...");
+      pthread_join(connectionWorkers[i], NULL);
+
+      pthread_mutex_lock(&GlobaSocketLock);
+      connectionWorkers[i] = 0;
+      pthread_mutex_unlock(&GlobaSocketLock);
     }
   }
 

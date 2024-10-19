@@ -373,8 +373,11 @@ unsigned short int dozor_pack(CommandResponse * command,
   command->responseLength = answerLength + 6;
   
   free(cmdValue);
+  printf("\n***libdozor.c: cmdValue freed");
   free(answer);
+  printf("\n***libdozor.c: answer freed");
   free(response);
+  printf("\n***libdozor.c: response freed\n");
 
   return 0;
 }

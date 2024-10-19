@@ -106,12 +106,6 @@ void * publishEvent(void * args)
   }
 
   publish(topic, report, retainFlag);
-
-  free(payload->deviceIp);
-  free(payload->data);
-  free(payload);
-
-  pthread_exit(0);
 }
 
 void initCommandsStore()
@@ -126,7 +120,7 @@ void initCommandsStore()
   commands->length = 0;
 }
 
-void * socket_message_callback(CommandResponse * response, uint8_t * data, char * clientIp) {
+on_message_t socket_message_callback(CommandResponse * response, uint8_t * data, char * clientIp) {
   unsigned short int index = 0;
   short int res = -1;
   char logMessage[2048];
@@ -165,6 +159,9 @@ void * socket_message_callback(CommandResponse * response, uint8_t * data, char 
   Events * events = dozor_unpackV2(crypto, data, appConfig.pinCode, appConfig.debug);
 
   if (events != NULL && events->errorCode == 0) {
+    snprintf(logMessage, sizeof(logMessage), "Total events - %d", events->length);
+    logger(LOG_LEVEL_INFO, clientIp, logMessage);
+
     for (index = 0; index < events->length; index++) {
       pthread_t publishThread = 0;
 
@@ -174,13 +171,16 @@ void * socket_message_callback(CommandResponse * response, uint8_t * data, char 
       strncpy(payload->deviceIp, clientIp, sizeof(char) * 16);
       memcpy(payload->data, &events->items[0], sizeof(EventInfo));
 
-      if (pthread_create(&publishThread, NULL, publishEvent, payload) == 0)
-        pthread_detach(publishThread);
+      publishEvent(payload);
     }
 
+    free(payload->deviceIp);
+    free(payload->data);
+    free(payload);
+    
     free(events);
 
-    pthread_mutex_lock(&commandsWriteLock);
+    
     short int found = getNextCommandIdx(commands);
     if (found != -1) {
       snprintf(logMessage, sizeof(logMessage), "Sending cmd - \"%s\"", commands->items[found].value);
@@ -188,32 +188,48 @@ void * socket_message_callback(CommandResponse * response, uint8_t * data, char 
       res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value, appConfig.debug);
       
       // @todo mark command as "sent", make it "done" once device returns command execution result
+      pthread_mutex_lock(&commandsWriteLock);
       commands->items[found].done = 1; 
       pthread_mutex_unlock(&commandsWriteLock);
 
+      logger(LOG_LEVEL_DEBUG, "-", "Command encrypted");
     } else {
+      logger(LOG_LEVEL_DEBUG, "-", "No active command found, using default command");
       res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER, appConfig.debug);
     }
     
     if (response == NULL || res == -1) {
+      logger(LOG_LEVEL_DEBUG, "-", "Unable to encrypt command! Freeing memory...");
+    
       free(payload->deviceIp);
       free(payload->data);
       free(payload);
       free(crypto);
-
+    
+      logger(LOG_LEVEL_DEBUG, "-", "Unable to encrypt command! Freeing memory...completed. Exiting...");
+    
       fprintf(stderr, "Unable to encrypt command!\n");
       return (void *) -1;
     }
   } else {
+    snprintf(logMessage, sizeof(logMessage), "Unable to unpack events! Error code - %d. Freeing memory...", events->errorCode);
+    logger(LOG_LEVEL_DEBUG, "-", logMessage);
+    
     // @todo handle error code value
     free(payload->deviceIp);
     free(payload->data);
     free(payload);
     free(crypto);
 
+    logger(LOG_LEVEL_DEBUG, "-", "Unable to unpack events! Freeing memory...completed. Exiting...");
+    
     return (void *) events->errorCode;
   }
+
+
+  logger(LOG_LEVEL_DEBUG, "-", "Freeing crypto...");
   free(crypto);
+  logger(LOG_LEVEL_DEBUG, "-", "Freeing crypto...completed. Exiting...");
 
   return (void *) 0;
 }

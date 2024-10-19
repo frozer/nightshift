@@ -17,6 +17,8 @@
 #ifndef SOCKET_SERVER_CONFIG_H
 #define SOCKET_SERVER_CONFIG_H
 
+#define MAX_CONN 5
+
 typedef void (*on_message_t)(void *responsePayload, void *data, char *clientIp);
 
 struct SocketConfig {
