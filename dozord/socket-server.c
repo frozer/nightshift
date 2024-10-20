@@ -49,23 +49,22 @@ void log_incoming_data(const char *clientIp, uint8_t *data, int data_length) {
     // Ensure the string is null-terminated
     logMessage[offset - 1] = '\0';  // Replace the last space with a null terminator
 
-    // Use the logger tool to log the incoming data
-    logger(LOG_LEVEL_INFO, clientIp, logMessage);
+    logger(LOG_LEVEL_DEBUG, clientIp, logMessage);
 }
 
-void * connectionCb(void * args) {
-  struct ConnectionPayload * connInfo = (struct ConnectionPayload *) args;
+void * connectionCb(void * payload) {
+  struct ConnectionPayload * connInfo = (struct ConnectionPayload *) payload;
   uint8_t data[BUFFERSIZE];
   char logMessage[2048];
-  int sockfd = connInfo->sockfd; 
   CommandResponse * responsePayload;
   
-  int c = read(sockfd, &data, BUFFERSIZE);
+  int c = read(connInfo->sockfd, &data, BUFFERSIZE);
   if (c < 0) {
     fprintf(stderr, "ERROR reading from socket: %s\n", strerror(errno));
-    close(sockfd);
-    pthread_exit(0);
-    return 0;
+    close(connInfo->sockfd);
+    free(connInfo);
+    pthread_exit(NULL);
+    return -1;
   }
   
   log_incoming_data(&connInfo->clientIp, (uint8_t *)data, c);
@@ -73,6 +72,9 @@ void * connectionCb(void * args) {
   responsePayload = malloc(sizeof(CommandResponse));
   if (responsePayload == NULL) {
     fprintf(stderr, "Unable to allocate memory for CommandResponse: %s\n", strerror(errno));
+    close(connInfo->sockfd);
+    free(connInfo);
+    pthread_exit(NULL);
     return -1;
   }
 
@@ -87,11 +89,13 @@ void * connectionCb(void * args) {
 
     while(responsePayload->responseLength > written)
     {
-      n = send(sockfd, ptr, (toWrite - written), 0x4000);
+      n = send(connInfo->sockfd, ptr, (toWrite - written), 0x4000);
       if (n < 0) {
         free(responsePayload);
         fprintf(stderr, "Socket send failed: %s\n", strerror(errno));
-        close(sockfd);
+        close(connInfo->sockfd);
+        free(connInfo);
+        pthread_exit(NULL);
         return -1;
       }
       ptr += 1;
@@ -102,7 +106,9 @@ void * connectionCb(void * args) {
   }
 
   free(responsePayload);
-  close(sockfd);
+  close(connInfo->sockfd);
+
+  free(connInfo);
 
   pthread_mutex_lock(&GlobaSocketLock);
   connectionWorkers[connInfo->workerId] = 0;
@@ -112,9 +118,7 @@ void * connectionCb(void * args) {
   snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
   logger(LOG_LEVEL_DEBUG, "TCP", logMessage);   
 
-  pthread_exit(0);
-  
-  return NULL;
+  pthread_exit(NULL);
 }
 
 void * startSocketListener(void * args) {
@@ -128,8 +132,6 @@ void * startSocketListener(void * args) {
   char logMessage[256];
   struct ConnectionPayload infos[5];
   socklen_t len;
-
-  unsigned short int i = 0;
 
   // socket create and verification 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0); 
@@ -169,10 +171,20 @@ void * startSocketListener(void * args) {
 
   while(!socketExitRequested)
   {
-    if (i < MAX_CONN) {
-      if (connectionWorkers[i] == 0) {
-        // @todo make it pointer
-        struct ConnectionPayload payload;
+    int availableSlot = -1;
+    for (int j = 0; j < MAX_CONN; j++) {
+        if (connectionWorkers[j] == 0) {
+            availableSlot = j;
+            break;
+        }
+    }
+
+    if (availableSlot >= 0) {
+        struct ConnectionPayload *payload = malloc(sizeof(struct ConnectionPayload));
+        if (payload == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            pthread_exit(-1);
+        }
 
         // Accept the data packet from client and verification
         len = sizeof(cli);
@@ -186,40 +198,35 @@ void * startSocketListener(void * args) {
 
         inet_ntop( AF_INET, &cli.sin_addr, clientIp, INET_ADDRSTRLEN );   
 
-        strncpy(payload.clientIp, clientIp, sizeof(clientIp));
-        payload.sockfd = newsockfd;
-        payload.debug = socketConfig->debug;
-        payload.on_message = socketConfig->on_message;
-        payload.workerId = i;
+        strncpy(payload->clientIp, clientIp, sizeof(clientIp));
+        payload->sockfd = newsockfd;
+        payload->debug = socketConfig->debug;
+        payload->on_message = socketConfig->on_message;
+        payload->workerId = availableSlot;
 
         pthread_mutex_lock(&GlobaSocketLock);
-        if (pthread_create(&connectionWorkers[i], NULL, connectionCb, (void *) &payload) != 0) {
-          connectionWorkers[i] = 0;
+        if (pthread_create(&connectionWorkers[availableSlot], NULL, connectionCb, (void *) payload) != 0) {
+          free(payload);
+          connectionWorkers[availableSlot] = 0;
           fprintf(stderr, "Connection workers init failed: %s\n", strerror(errno));
-          exit(-1);
+          pthread_exit(-1);
         }
         pthread_mutex_unlock(&GlobaSocketLock);
 
-      }
-      i++;
-    
     } else {
       logger(LOG_LEVEL_INFO, "TCP", "No more connections left...");
-      pthread_join(connectionWorkers[i], NULL);
-
-      pthread_mutex_lock(&GlobaSocketLock);
-      connectionWorkers[i] = 0;
-      pthread_mutex_unlock(&GlobaSocketLock);
+      sleep(1);
     }
   }
 
   logger(LOG_LEVEL_INFO, "TCP", "Closing client connections...");
-  for (i = 0; i < 5; i++) {
-    if (connectionWorkers[i]) {
-      pthread_join(connectionWorkers[i], NULL);
+  for (int j = 0; j < MAX_CONN; j++) {
+    if (connectionWorkers[j]) {
+      pthread_cancel(connectionWorkers[j]);
+      pthread_join(connectionWorkers[j], NULL);
 
       pthread_mutex_lock(&GlobaSocketLock);
-      connectionWorkers[i] = 0;
+      connectionWorkers[j] = 0;
       pthread_mutex_unlock(&GlobaSocketLock);
     }
   }
