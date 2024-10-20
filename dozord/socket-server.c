@@ -192,6 +192,7 @@ void * startSocketListener(void * args) {
 
         if (newsockfd < 0) { 
           fprintf(stderr, "Server accept failed: %s\n", strerror(errno));
+          free(payload);
           pthread_exit(NULL);
           exit(-1);
         }
