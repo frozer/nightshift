@@ -81,7 +81,7 @@ void * connectionCb(void * payload) {
   // @todo handle return value, -1 - error
   connInfo->on_message(responsePayload, data, &connInfo->clientIp);
 
-  if (responsePayload != NULL) {
+  if (responsePayload->responseLength > 0) {
     int n = 0;
     uint8_t * ptr = (uint8_t*) responsePayload;
     int written = 0;
@@ -215,7 +215,7 @@ void * startSocketListener(void * args) {
         pthread_mutex_unlock(&GlobaSocketLock);
 
     } else {
-      logger(LOG_LEVEL_INFO, "TCP", "No more connections left...");
+      logger(LOG_LEVEL_DEBUG, "TCP", "No more connections left...");
       sleep(1);
     }
   }

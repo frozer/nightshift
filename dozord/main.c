@@ -160,7 +160,7 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
 
   if (events != NULL && events->errorCode == 0) {
     snprintf(logMessage, sizeof(logMessage), "Total events - %d", events->length);
-    logger(LOG_LEVEL_INFO, clientIp, logMessage);
+    logger(LOG_LEVEL_DEBUG, clientIp, logMessage);
 
     for (index = 0; index < events->length; index++) {
       pthread_t publishThread = 0;
