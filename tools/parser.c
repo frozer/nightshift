@@ -21,6 +21,7 @@
 #include <time.h>
 #include <errno.h>
 #include <dozor.h>
+#include "../liblogger/liblogger.h"
 
 #define BUFFERSIZE 1024
 
@@ -87,8 +88,7 @@ int main(int argc, char **argv)
   Events * events = dozor_unpackV2(crypto, data, argv[1], 1);
   if (events != NULL && events->errorCode == 0) {
     for (int index = 0; index < events->length; index++) {
-      snprintf(logMessage, sizeof(logMessage), "%s", events->items[index].event);
-      printf("%s\n", logMessage);
+      logger(LOG_LEVEL_INFO, "parser", "%s", events->items[index].event);
     }
 
     free(data);
