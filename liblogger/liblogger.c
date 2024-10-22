@@ -14,7 +14,7 @@ void logger(LogLevel level, const char* module, const char* format, ...) {
     }
 
     const char* levelStrings[] = {"DEBUG", "INFO", "WARN", "ERROR"};
-    char logMessage[256];
+    char logMessage[1024];
 
     va_list args;
     va_start(args, format);
