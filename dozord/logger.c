@@ -48,7 +48,7 @@ void getISODateTime(char* buffer, size_t bufferSize) {
              timezoneMinutes);
 }
 
-void logger(const char* level, const char* source, const char* message) {
+void prettyLogger(const char* level, const char* source, const char* message) {
     char dateTimeBuffer[30];  // Buffer to hold the timestamp in ISO 8601 format
     getISODateTime(dateTimeBuffer, sizeof(dateTimeBuffer));
 

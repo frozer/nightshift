@@ -10,6 +10,9 @@
     "command.h": "c",
     "logger.h": "c",
     "app-config.h": "c",
-    "dozor-crypto.h": "c"
+    "dozor-crypto.h": "c",
+    "array": "c",
+    "string": "c",
+    "string_view": "c"
   }
 }
