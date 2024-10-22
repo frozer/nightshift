@@ -21,7 +21,7 @@
 #include <string.h>
 #include "./command.h"
 
-short int getNextCommand(Commands * commands)
+short int getNextCommandIdx(Commands * commands)
 {
   unsigned short int index;
   short int found = -1;
@@ -96,7 +96,7 @@ void readCommandsFromFile(Commands * commands, char * fn, const unsigned short i
   }
 }
 
-void readCommandsFromString(Commands * commands, char * command, const unsigned short int debugMode)
+void readCommandsFromString(Commands * commands, char * command)
 {
   int i = commands->length;
   if (i >= MAX_COMMAND_QUEUE_LENGTH)
@@ -109,8 +109,4 @@ void readCommandsFromString(Commands * commands, char * command, const unsigned 
   sprintf(commands->items[i].value, "%s", command);
   commands->items[i].done = 0;
   commands->items[i].id = i + 1;
-
-  if (debugMode) {
-    printf("***commands.c: new command - %s\n", commands->items[i].value);
-  }
 }

@@ -1,11 +1,7 @@
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
-
-AC_PREREQ([2.69])
-AC_INIT([libdozor], [0.9.4], [n.halcyon@gmail.com])
+m4_include([version.m4])
+AC_INIT([nightshift],VERSION_NUMBER,[n.halcyon@gmail.com])
 AM_INIT_AUTOMAKE
-AC_CONFIG_SRCDIR([dozor.h])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SUBDIRS(libdozor dozord tools)
 
 AM_PROG_LIBTOOL
 
@@ -17,13 +13,16 @@ AC_PROG_MAKE_SET
 AC_HEADER_STDC
 
 # Checks for libraries.
+AX_PTHREAD
+
+# Checks for libraries.
 AC_CHECK_LIB(mosquitto,mosquitto_publish, [], [
   echo "Error! You need to have libmosquitto around."
   exit -1
 ])
 
 # Checks for header files.
-AC_CHECK_HEADERS([inttypes.h stdint.h stdlib.h string.h unistd.h byteswap.h mosquitto.h])
+AC_CHECK_HEADERS([arpa/inet.h inttypes.h stdint.h netinet/in.h stdlib.h string.h sys/socket.h unistd.h pthread.h byteswap.h mosquitto.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -34,7 +33,12 @@ AC_TYPE_UINT8_T
 
 # Checks for library functions.
 AC_FUNC_MALLOC
-AC_CHECK_FUNCS([strerror strtol])
+AC_CHECK_FUNCS([bzero socket strerror strtol])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([
+  dozord/Makefile
+  libdozor/Makefile
+  tools/Makefile
+  Makefile
+])
 AC_OUTPUT

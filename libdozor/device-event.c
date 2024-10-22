@@ -73,6 +73,11 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
     getDeviceEvent(deviceEvent, &raw[index], eventSize);
     memcpy(&events[eventCount], deviceEvent, sizeof(DeviceEvent));
 
+    if (debugMode == 1)
+    {
+      printf("***device-event(getDeviceEvents): event id 0x%x at position %d, size - %d\n", raw[index], index, eventSize);
+    }
+
     eventCount += 1;
     index = index + eventSize;
     totalLength = totalLength - eventSize;

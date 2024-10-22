@@ -2,7 +2,7 @@
 .SH NAME
 dozord \- Astra Dozor Security System protocol daemon
 .SH SYNOPSIS
-dozord -s <site id> -k <pincode> [\-p 1111] [\-d] [\-h]
+dozord -s <site> -k <device pincode> [\-l 1111] [\-m 127.0.0.1] [\-p 1883] [\-d] [\h]
 
 .SH DESCRIPTION
 dozord is an free implementation of the Astra Dozor Security
@@ -13,14 +13,24 @@ Dozor Box
 .IP -s
 Astra Box device ID
 .IP -k
-Astra Box device pincode
-.IP -p
+Astra Box device PIN code
+.IP -l
 listen specified port, 1111 by default
+.IP -m
+MQTT host to connect, 127.0.0.1 by default
+.IP -p
+MQTT port to connect, 1883 by default
 .IP -d
 runs in debug mode, highly verbose (will report
 every request and commands performed by the server)
 .IP -h
 displays help
+
+.SH "ENVIRONMENT VARIABLES"
+.IP DOZOR_SITE_ID
+Astra Box device ID
+.IP DOZOR_SITE_KEY
+Astra Box device PIN code
 
 .SH AUTHORS
 dozord was implemented and created by Denis Morozov

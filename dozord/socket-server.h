@@ -14,12 +14,28 @@
   You should have received a copy of the GNU General Public License
   along with NightShift. If not, see <https://www.gnu.org/licenses/>. 
 */
+#ifndef SOCKET_SERVER_CONFIG_H
+#define SOCKET_SERVER_CONFIG_H
 
-#include "command.h"
+#define MAX_CONN 5
 
-#ifndef ANSWER_H
-#define ANSWER_H
+typedef void (*on_message_t)(void *responsePayload, void *data, char *clientIp);
 
-short int answerDevice(int sockfd, CryptoSession * crypto, Commands * commands, unsigned short int debugMode);
+struct SocketConfig {
+  unsigned int port;
+  on_message_t on_message;
+  unsigned int debug;
+};
 
-#endif
+struct ConnectionPayload {
+  int sockfd;
+  char * clientIp[16];
+  on_message_t on_message;
+  unsigned int debug;
+  unsigned short int workerId;
+};
+
+void startSocketService(struct SocketConfig * config);
+void stopSocketService();
+
+#endif // SOCKET_SERVER_CONFIG_H

@@ -64,6 +64,12 @@ typedef struct COMMON_EVENT {
   char data[256];
 } CommonEvent;
 
+typedef struct EVENTS {
+  EventInfo items[MAX_DEVICE_RECORDS];
+  uint8_t length;
+  int errorCode;
+} Events;
+
 void getKeepAliveEvent(EventInfo* eventInfo, uint8_t site, DeviceInfo* info);
 void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent* deviceEvent);
 static char * getFirmwareVersionEventData(uint8_t type, uint8_t * data, uint8_t len);

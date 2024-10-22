@@ -32,8 +32,8 @@ typedef struct {
   unsigned short int length;
 } Commands;
 
-short int getNextCommand(Commands *);
+short int getNextCommandIdx(Commands *);
 void readCommandsFromFile(Commands *, char * fn, const unsigned short int debugMode);
-void readCommandsFromString(Commands * commands, char * command, const unsigned short int debugMode);
+void readCommandsFromString(Commands * commands, char * command);
 
 #endif

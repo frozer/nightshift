@@ -52,4 +52,6 @@ int dozor_unpack(CryptoSession *, connectionInfo *, uint8_t *, void (*)(),
 unsigned short int dozor_pack(CommandResponse * , CryptoSession *, unsigned int commandId, char * commandValue, 
 const unsigned short int);
 
+Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, const unsigned short int debugMode);
+
 #endif

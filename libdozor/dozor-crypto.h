@@ -42,6 +42,8 @@
 #define ERROR_MESSAGE_TOO_SHORT -4
 #define ERROR_CRYPTO_SESSION_NOT_INITIALIZED -5
 
+#define MAX_DEVICE_RECORDS 256
+
 typedef struct DEVICE_INFO {
   uint8_t tag;
   short unsigned int channel:4;
@@ -71,7 +73,7 @@ typedef struct DOZOR_MESSAGE {
 
 typedef struct DOZOR_REPORT {
   uint8_t eventTotals;
-  DeviceEvent events[256];
+  DeviceEvent events[MAX_DEVICE_RECORDS];
   DeviceInfo info;
   uint16_t site;
 } DozorReport;
