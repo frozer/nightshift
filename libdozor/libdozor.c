@@ -76,19 +76,7 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
   
   ptr = (uint8_t*) packet.raw;
 
-  // if (debugMode)
-  // {
-  //   printf("\n>>> Incoming message...\n");
-  //   printf("[%d]: ", msgLength - 4);
-  //   for (index = 0; index < msgLength; index++)
-  //   {
-  //     printf("%02X", *(ptr + index));
-  //   }
-  //   printf("\n");
-  //   printf(">>> Incoming message End\n");
-  // }
-  // @todo 
-  logger(LOG_LEVEL_DEBUG, "libdozor", "%s", raw);
+  logger(LOG_LEVEL_DEBUG, "libdozor", "Incoming length - %d, %s", msgLength - 4, blobToHexStr(ptr, msgLength));
 
   deviceReport = malloc(sizeof(DozorReport));
   if (deviceReport == NULL)
@@ -195,7 +183,6 @@ unsigned short int dozor_pack(CommandResponse * command,
   if ((strlen(commandValue) > 1) && (commandId > 0))
   {      
     logger(LOG_LEVEL_DEBUG, "libdozor", "New command - %s", cmdValue);
-
   } else {
     strcpy(cmdValue, DEFAULT_ANSWER);
   }
@@ -215,10 +202,7 @@ unsigned short int dozor_pack(CommandResponse * command,
 
   strcat(answer, "!");
   
-  if (debugMode)
-  {
-    printf("***libdozor.c: command - %s (%d)\n", answer, answerLength);
-  }
+  logger(LOG_LEVEL_DEBUG, "libdozor", "command - %s (%d)", answer, answerLength);
 
   memcpy(response->encrypted, answer, sizeof(char) * answerLength);
   

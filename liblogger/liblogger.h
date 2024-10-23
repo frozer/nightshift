@@ -15,5 +15,6 @@ typedef enum {
 // Function prototypes
 void set_log_level(LogLevel level);
 void logger(LogLevel level, const char* module, const char* format, ...);
+char * blobToHexStr(uint8_t *data, int data_length);
 
 #endif // LIBLOGGER_H
