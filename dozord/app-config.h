@@ -16,7 +16,6 @@ struct AppConfig {
   struct MQTTConfig mqttConfig;
   char pinCode[36];
   unsigned int siteId;
-  unsigned int debug;
 };
 
 void initializeAppConfig(struct AppConfig *appConfig);

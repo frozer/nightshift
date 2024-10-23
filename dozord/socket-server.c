@@ -201,7 +201,6 @@ void * startSocketListener(void * args) {
 
         strncpy(payload->clientIp, clientIp, sizeof(clientIp));
         payload->sockfd = newsockfd;
-        payload->debug = socketConfig->debug;
         payload->on_message = socketConfig->on_message;
         payload->workerId = availableSlot;
 

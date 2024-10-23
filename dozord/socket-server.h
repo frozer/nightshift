@@ -24,14 +24,12 @@ typedef void (*on_message_t)(void *responsePayload, void *data, char *clientIp);
 struct SocketConfig {
   unsigned int port;
   on_message_t on_message;
-  unsigned int debug;
 };
 
 struct ConnectionPayload {
   int sockfd;
   char * clientIp[16];
   on_message_t on_message;
-  unsigned int debug;
   unsigned short int workerId;
 };
 

@@ -36,7 +36,6 @@ typedef struct {
   int sock;
   char clientIp[16];
   unsigned char pinCode[32];
-  unsigned short int debug;
 } connectionInfo;
 
 typedef struct {
