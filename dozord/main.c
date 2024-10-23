@@ -156,7 +156,7 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
     return (void *) -1;
   }
 
-  Events * events = dozor_unpackV2(crypto, data, appConfig.pinCode, appConfig.debug);
+  Events * events = dozor_unpackV2(crypto, data, appConfig.pinCode);
 
   if (events != NULL && events->errorCode == 0) {
     snprintf(logMessage, sizeof(logMessage), "Total events - %d", events->length);
@@ -185,7 +185,7 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
     if (found != -1) {
       snprintf(logMessage, sizeof(logMessage), "Sending cmd - \"%s\"", commands->items[found].value);
       prettyLogger(LOG_LEVEL_INFO, "-", logMessage);
-      res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value, appConfig.debug);
+      res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value);
       
       // @todo mark command as "sent", make it "done" once device returns command execution result
       pthread_mutex_lock(&commandsWriteLock);
@@ -195,7 +195,7 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
       prettyLogger(LOG_LEVEL_DEBUG, "-", "Command encrypted");
     } else {
       prettyLogger(LOG_LEVEL_DEBUG, "-", "No active command found, using default command");
-      res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER, appConfig.debug);
+      res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER);
     }
     
     if (response == NULL || res == -1) {

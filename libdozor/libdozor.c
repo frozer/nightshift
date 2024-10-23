@@ -32,7 +32,7 @@ union rawMessage {
   uint8_t raw[BUFFERSIZE];
 };
 
-Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, const unsigned short int debugMode)
+Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode)
 {
   uint8_t * ptr;
   int c, n;
@@ -64,8 +64,7 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
     crypto,
     (const unsigned char *) pinCode,
     (const unsigned char *) packet.raw,
-    msgLength - 4, // strtol(packet.data.aLength, 0, 10)
-    debugMode 
+    msgLength - 4 // strtol(packet.data.aLength, 0, 10)
   );
   if (initError)
   {
@@ -146,9 +145,12 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
   return events;
 }
 
-unsigned short int dozor_pack(CommandResponse * command, 
-  CryptoSession * crypto, unsigned int commandId, char * commandValue,
-  const unsigned short int debugMode)
+unsigned short int dozor_pack(
+  CommandResponse * command, 
+  CryptoSession * crypto, 
+  const unsigned int commandId, 
+  char * commandValue
+)
 {
   int n;
   unsigned short int answerLength, index;
@@ -215,24 +217,24 @@ unsigned short int dozor_pack(CommandResponse * command,
     return -1;
   }
   
-  if (debugMode)
-  {
-    ptr = (uint8_t*) response->encrypted;
-    printf("\n***libdozor.c: encrypted response: ");
-    for (index = 0; index < answerLength; index++)
-    {
-      printf("%02X", *(ptr + index));
-    }
-    printf("\n");
+  // if (debugMode)
+  // {
+  //   ptr = (uint8_t*) response->encrypted;
+  //   printf("\n***libdozor.c: encrypted response: ");
+  //   for (index = 0; index < answerLength; index++)
+  //   {
+  //     printf("%02X", *(ptr + index));
+  //   }
+  //   printf("\n");
 
-    ptr = (uint8_t*) response;
-    printf("\n***libdozor.c: response: ");
-    for (index = 0; index < answerLength + 6; index++)
-    {
-      printf("%02X", *(ptr + index));
-    }
-    printf("\n");
-  }
+  //   ptr = (uint8_t*) response;
+  //   printf("\n***libdozor.c: response: ");
+  //   for (index = 0; index < answerLength + 6; index++)
+  //   {
+  //     printf("%02X", *(ptr + index));
+  //   }
+  //   printf("\n");
+  // }
 
   memcpy(&command->response, response, sizeof(DozorResponse));
   command->responseLength = answerLength + 6;

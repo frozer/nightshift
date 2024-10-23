@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     return -1;
   }
   
-  Events * events = dozor_unpackV2(crypto, data, argv[1], 1);
+  Events * events = dozor_unpackV2(crypto, data, argv[1]);
   if (events != NULL && events->errorCode == 0) {
     for (int index = 0; index < events->length; index++) {
       logger(LOG_LEVEL_INFO, "parser", "%s", events->items[index].event);

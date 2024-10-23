@@ -94,8 +94,7 @@ union PKEY
 // Initialize connection state
 short int initializeDozorCrypto(CryptoSession * crypto,
   const unsigned char* userKey, const unsigned char * data, 
-  const size_t dataLength,
-  const unsigned short int masterDebugMode);
+  const size_t dataLength);
 
 // Return encrypted data
 short int encrypt(unsigned char* data, CryptoSession * crypto, const size_t dataLength);

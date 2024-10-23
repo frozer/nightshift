@@ -45,13 +45,10 @@ typedef struct {
 } CommandResponse;
 
 /* decrypt and unpack device messages from raw data packet */
-int dozor_unpack(CryptoSession *, connectionInfo *, uint8_t *, void (*)(),
-  const unsigned short int);
+Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode);
 
 /* encrypt command for device */
-unsigned short int dozor_pack(CommandResponse * , CryptoSession *, unsigned int commandId, char * commandValue, 
-const unsigned short int);
+unsigned short int dozor_pack(CommandResponse * , CryptoSession *, unsigned int commandId, char * commandValue);
 
-Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, const unsigned short int debugMode);
 
 #endif
