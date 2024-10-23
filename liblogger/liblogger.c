@@ -26,19 +26,19 @@ void logger(LogLevel level, const char* module, const char* format, ...) {
 }
 
 char * blobToHexStr(uint8_t *data, int data_length) {
-    char logMessage[1024];
-    int offset = 0;
+    // Allocate memory for the hex string (2 characters per byte + 1 for null terminator)
+    char *hexStr = (char *)malloc(data_length * 2 + 1);
+    if (!hexStr) {
+        return NULL;  // Return NULL if memory allocation fails
+    }
 
-    // Iterate over each byte of the data and append its hex representation to logMessage
+    int offset = 0;
     for (int i = 0; i < data_length; i++) {
-        offset += snprintf(logMessage + offset, sizeof(logMessage) - offset, "%02x", data[i]);
-        if (offset >= sizeof(logMessage)) {
-            break;  // Prevent buffer overflow, stop if we exceed the buffer size
-        }
+        offset += snprintf(hexStr + offset, 3, "%02x", data[i]);
     }
 
     // Ensure the string is null-terminated
-    logMessage[offset - 1] = '\0';  // Replace the last space with a null terminator
-  
-    return &logMessage;
+    hexStr[offset] = '\0';
+
+    return hexStr;
 }
