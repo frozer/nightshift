@@ -47,6 +47,7 @@ void processCommandLineOptions(int argc, char **argv, struct AppConfig *appConfi
                 appConfig->debug = 1;
                 appConfig->mqttConfig.debug = 1;
                 appConfig->socketConfig.debug = 1;
+                set_log_level(LOG_LEVEL_DEBUG);
                 break;
 
             default:

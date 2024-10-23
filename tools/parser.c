@@ -84,7 +84,9 @@ int main(int argc, char **argv)
     fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
     return -1;
   }
-  
+
+  set_log_level(LOG_LEVEL_INFO);
+
   Events * events = dozor_unpackV2(crypto, data, argv[1]);
   if (events != NULL && events->errorCode == 0) {
     for (int index = 0; index < events->length; index++) {

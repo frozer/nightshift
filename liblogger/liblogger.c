@@ -42,3 +42,22 @@ char * blobToHexStr(uint8_t *data, int data_length) {
 
     return hexStr;
 }
+
+// Logger function
+char * getLogMessage(LogLevel level, const char* format, ...) {
+    if (level < currentLogLevel) {
+        return NULL;
+    }
+    
+    char *logMessage = (char *)malloc(1024);
+    if (!logMessage) {
+        return NULL;
+    }
+
+    va_list args;
+    va_start(args, format);
+    vsnprintf(logMessage, sizeof(logMessage), format, args);
+    va_end(args);
+
+    return logMessage;
+}
