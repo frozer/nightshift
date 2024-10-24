@@ -49,7 +49,7 @@ char * getLogMessage(LogLevel level, const char* format, ...) {
         return NULL;
     }
     
-    char *logMessage = (char *)malloc(1024);
+    char *logMessage = (char *)malloc(sizeof(char) * 1024);
     if (!logMessage) {
         return NULL;
     }
