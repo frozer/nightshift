@@ -50,16 +50,17 @@ void getISODateTime(char* buffer, size_t bufferSize) {
 }
 
 void prettyLogger(LogLevel level, const char* source, const char* message) {
-    char dateTimeBuffer[30];  // Buffer to hold the timestamp in ISO 8601 format
-    getISODateTime(dateTimeBuffer, sizeof(dateTimeBuffer));
-
-    // Concatenate timestamp with the log message
-    char * logMessage = getLogMessage(level, "[%s] %s [%s] %s", dateTimeBuffer, level, source, message);
-
-    if (!logMessage) {
+    if (level < get_log_level()) {
       return;
     }
+
+    char dateTimeBuffer[30];  // Buffer to hold the timestamp in ISO 8601 format
+    getISODateTime(dateTimeBuffer, sizeof(dateTimeBuffer));
     
+    // Concatenate timestamp with the log message
+    char logMessage[1024];  // Buffer for the final log message
+    snprintf(logMessage, 1024, "[%s] %s [%s] %s", dateTimeBuffer, logLevel2Str(level), source, message);
+
     // Print the log message
     printf("%s\n", logMessage);
 }

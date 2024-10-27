@@ -8,13 +8,26 @@ void set_log_level(LogLevel level) {
     currentLogLevel = level;
 }
 
+LogLevel get_log_level() {
+    return currentLogLevel;
+}
+
+char * logLevel2Str(LogLevel level) {
+    const char* levelStrings[] = {
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR"
+    };
+    return levelStrings[level];
+}
+
 // Logger function
 void logger(LogLevel level, const char* module, const char* format, ...) {
     if (level < currentLogLevel) {
         return;
     }
 
-    const char* levelStrings[] = {"DEBUG", "INFO", "WARN", "ERROR"};
     char logMessage[1024];
 
     va_list args;
@@ -22,7 +35,7 @@ void logger(LogLevel level, const char* module, const char* format, ...) {
     vsnprintf(logMessage, sizeof(logMessage), format, args);
     va_end(args);
 
-    printf("[%s] %s: %s\n", levelStrings[level], module, logMessage);
+    printf("[%s] %s: %s\n", logLevel2Str(level), module, logMessage);
 }
 
 char * blobToHexStr(uint8_t *data, int data_length) {
@@ -41,23 +54,4 @@ char * blobToHexStr(uint8_t *data, int data_length) {
     hexStr[offset] = '\0';
 
     return hexStr;
-}
-
-// Logger function
-char * getLogMessage(LogLevel level, const char* format, ...) {
-    if (level < currentLogLevel) {
-        return NULL;
-    }
-    
-    char *logMessage = (char *)malloc(sizeof(char) * 1024);
-    if (!logMessage) {
-        return NULL;
-    }
-
-    va_list args;
-    va_start(args, format);
-    vsnprintf(logMessage, sizeof(logMessage), format, args);
-    va_end(args);
-
-    return logMessage;
 }

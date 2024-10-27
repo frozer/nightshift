@@ -13,6 +13,11 @@
     "dozor-crypto.h": "c",
     "array": "c",
     "string": "c",
-    "string_view": "c"
+    "string_view": "c",
+    "stdio.h": "c",
+    "errno.h": "c",
+    "cstdint": "c",
+    "liblogger.h": "c",
+    "time.h": "c"
   }
 }
