@@ -297,6 +297,9 @@ int main(int argc, char **argv)
 
   pthread_exit(NULL);
 
+  free(&appConfig.mqttConfig);
+  free(&appConfig.socketConfig);
+
   free(commands);
   
   return 0;

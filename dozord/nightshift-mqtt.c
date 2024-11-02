@@ -45,16 +45,13 @@ void* mqtt_thread_reconnect(void* args)
   }
   pthread_mutex_unlock(&GlobalMQTTConnectedLock);
 
-  struct mosquitto *mosq = NULL;
 	int sleep_time = MQTT_RECONNECT_SEC;
 	
   if(args == NULL) {
 		pthread_exit(0);
 		return 0;
 	}
-	
-  mosq = (struct mosquitto*) args;
-	
+		
   if (mosq == NULL) {
     pthread_exit(0);
 		return 0;
@@ -89,22 +86,21 @@ void* mqtt_thread_reconnect(void* args)
 
 void* mqtt_thread_connect(void* args)
 {
-  struct MQTTThreadPayload * payload = (struct MQTTThreadPayload *) args;
+  struct MQTTConfig * mqttConfig = (struct MQTTConfig *) args;
   char agentInfo[90] = {0};
   char commandTopic[100] = {0};
   char logMessage[256]; 
   int rc = 0;
 
-  if (payload == NULL) {
+  if (mqttConfig == NULL) {
 		pthread_exit(0);
 		return NULL;
   }
 
-  sprintf(commandTopic, COMMAND_TOPIC, payload->mqttConfig->siteId);
-  sprintf(agentInfo, ACK_JSON, payload->mqttConfig->agentId, payload->mqttConfig->siteId);
+  snprintf(commandTopic, sizeof(commandTopic), COMMAND_TOPIC, mqttConfig->siteId);
+  snprintf(agentInfo, sizeof(agentInfo), ACK_JSON, mqttConfig->agentId, mqttConfig->siteId);
 
-  // @todo replace payload->mosq woth mosq
-  rc = mosquitto_subscribe(payload->mosq, NULL, commandTopic, 0);
+  rc = mosquitto_subscribe(mosq, NULL, commandTopic, 0);
   if (rc != MOSQ_ERR_SUCCESS) {
     snprintf(logMessage, sizeof(logMessage), "Failed to subscribe to command topic \"%s\". Error code: %d", commandTopic, rc);
     prettyLogger(LOG_LEVEL_ERROR, "MQTT", logMessage);
@@ -115,7 +111,6 @@ void* mqtt_thread_connect(void* args)
 
   publish(ACK_TOPIC, agentInfo, false);
 
-  free(payload);
   pthread_exit(0);
   return NULL;
 }
@@ -141,17 +136,8 @@ void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
     shouldReconnect = false;
     GlobalMQTTConnected = true;
     pthread_mutex_unlock(&GlobalMQTTConnectedLock);
-
-    struct MQTTThreadPayload *payload = malloc(sizeof(struct MQTTThreadPayload));
-    if (!payload) {
-      prettyLogger(LOG_LEVEL_ERROR, "MQTT", "Failed to allocate memory for MQTTThreadPayload.");
-      return;
-    }
-    
-    payload->mosq = mosq;
-    payload->mqttConfig = mqttConfig;
-
-    if (pthread_create(&conn, NULL, mqtt_thread_connect, payload) == 0)
+   
+    if (pthread_create(&conn, NULL, mqtt_thread_connect, mqttConfig) == 0)
       pthread_detach(conn);
   
   } else {
@@ -163,7 +149,7 @@ void mqtt_connect_callback(struct mosquitto *mosq, void *obj, int result)
     GlobalMQTTConnected = false;
     pthread_mutex_unlock(&GlobalMQTTConnectedLock);
 
-    if (pthread_create(&GlobalReconnectThread, NULL, mqtt_thread_reconnect, mosq) != 0)
+    if (pthread_create(&GlobalReconnectThread, NULL, mqtt_thread_reconnect, NULL) != 0)
       GlobalReconnectThread = 0;
   }
 }

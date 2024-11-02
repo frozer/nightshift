@@ -56,8 +56,6 @@ struct MQTTConfig {
 };
 
 struct MQTTThreadPayload {
-  // @todo remove me
-  struct mosquitto * mosq;
   struct MQTTConfig * mqttConfig;
 };
 
