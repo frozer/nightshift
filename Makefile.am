@@ -1,6 +1,7 @@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = libdozor dozord tools
+SUBDIRS = liblogger libdozor dozord tools
 DISTDIR = $(top_builddir)/dist
+ACLOCAL_AMFLAGS = -I m4
 
 # Override the 'distdir' target
 #dist-hook:

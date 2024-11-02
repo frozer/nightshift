@@ -17,11 +17,8 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-void logger(const char* level, const char* source, const char* message);
+#include "../liblogger/liblogger.h"
 
-#define LOG_LEVEL_INFO "INFO"
-#define LOG_LEVEL_WARNING "WARNING"
-#define LOG_LEVEL_ERROR "ERROR"
-#define LOG_LEVEL_DEBUG "DEBUG"
+void prettyLogger(LogLevel level, const char* source, const char* message);
 
 #endif

@@ -53,12 +53,9 @@ struct MQTTConfig {
   unsigned int port;          // MQTT_PORT 
   unsigned int siteId;
   char agentId[36];
-  unsigned int debug;
 };
 
 struct MQTTThreadPayload {
-  // @todo remove me
-  struct mosquitto * mosq;
   struct MQTTConfig * mqttConfig;
 };
 

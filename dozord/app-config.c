@@ -44,9 +44,7 @@ void processCommandLineOptions(int argc, char **argv, struct AppConfig *appConfi
                 break;
 
             case 'd':
-                appConfig->debug = 1;
-                appConfig->mqttConfig.debug = 1;
-                appConfig->socketConfig.debug = 1;
+                set_log_level(LOG_LEVEL_DEBUG);
                 break;
 
             default:
@@ -59,13 +57,11 @@ void initializeAppConfig(struct AppConfig *appConfig) {
     appConfig->socketConfig.port = DEFAULT_PORT;
     appConfig->siteId = 0;
     strncpy(appConfig->pinCode, "", sizeof(appConfig->pinCode));
-    appConfig->socketConfig.debug = DEBUG;
     appConfig->socketConfig.on_message = NULL;
 
     appConfig->mqttConfig.siteId = 0;
     strncpy(appConfig->mqttConfig.host, MQTT_HOST, sizeof(appConfig->mqttConfig.host));
     appConfig->mqttConfig.port = MQTT_PORT;
-    appConfig->mqttConfig.debug = DEBUG;
     strncpy(appConfig->mqttConfig.agentId, AGENT_ID, sizeof(appConfig->mqttConfig.agentId));
 
     // Check environment variables

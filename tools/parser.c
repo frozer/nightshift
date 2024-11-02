@@ -21,9 +21,9 @@
 #include <time.h>
 #include <errno.h>
 #include <dozor.h>
+#include "../liblogger/liblogger.h"
 
 #define BUFFERSIZE 1024
-#define VERSION "1.0.2"
 
 union rawMessage {
   struct {
@@ -32,11 +32,6 @@ union rawMessage {
   } data;
   uint8_t raw[BUFFERSIZE];
 };
-
-void eventCallback(connectionInfo * conn, char * event)
-{
-  printf("%s\n", event);
-}
 
 void hexstr2char(char * dest, const char *hexstr, const size_t len)
 {
@@ -52,31 +47,21 @@ void hexstr2char(char * dest, const char *hexstr, const size_t len)
 int main(int argc, char **argv) 
 {
   unsigned char *data;
-  unsigned short int index;
-  
-  short int result;
+  char logMessage[2048];
 
   size_t msgLength;
   CryptoSession * crypto;
   union rawMessage packet;
-  connectionInfo * conn;
 
   if (argc < 3)
   {
     printf("./parser <key> <message>\n");
     return 0;
   }
-
-  conn = malloc(sizeof(connectionInfo));
-  if (conn == NULL) {
-    fprintf(stderr, "Unable to allocate memory for connection: %s\n", strerror(errno));
-    return -1;
-  }
   
   msgLength = strlen(argv[2]);
   if (msgLength % 2 != 0)
   {
-    free(conn);
     fprintf(stderr, "Message length not odd\n");
     return -1;
   }
@@ -84,28 +69,30 @@ int main(int argc, char **argv)
   data = malloc(sizeof(char) * BUFFERSIZE);
   if (data == NULL)
   {
-    free(conn);
     fprintf(stderr, "Unable to allocate memory for data - %s\n", strerror(errno));
     return -1;
   }
 
   hexstr2char(data, argv[2], msgLength / 2);
-  strcpy(conn->pinCode, argv[1]);
 
   memcpy(&packet, data, sizeof(char) * msgLength / 2);
 
   crypto = malloc(sizeof(CryptoSession));
   if (crypto == NULL)
   {
-    free(conn);
     free(data);
     fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
     return -1;
   }
-  
-  int res = dozor_unpack(crypto, conn, packet.raw, &eventCallback, 1);
-  if (res < 0) {
-    free(conn);
+
+  set_log_level(LOG_LEVEL_INFO);
+
+  Events * events = dozor_unpackV2(crypto, data, argv[1]);
+  if (events != NULL && events->errorCode == 0) {
+    for (int index = 0; index < events->length; index++) {
+      logger(LOG_LEVEL_INFO, "parser", "%s", events->items[index].event);
+    }
+
     free(data);
     free(crypto);
     return -1;
@@ -113,5 +100,4 @@ int main(int argc, char **argv)
 
   free(data);
   free(crypto);
-  free(conn);
 }

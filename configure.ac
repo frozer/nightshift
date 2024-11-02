@@ -1,16 +1,15 @@
 m4_include([version.m4])
 AC_INIT([nightshift],VERSION_NUMBER,[n.halcyon@gmail.com])
 AM_INIT_AUTOMAKE
-AC_CONFIG_SUBDIRS(libdozor dozord tools)
 
-AM_PROG_LIBTOOL
+LT_INIT
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_CC_STDC
+
 AC_PROG_MAKE_SET
 
-AC_HEADER_STDC
+
 
 # Checks for libraries.
 AX_PTHREAD
@@ -38,7 +37,9 @@ AC_CHECK_FUNCS([bzero socket strerror strtol])
 AC_CONFIG_FILES([
   dozord/Makefile
   libdozor/Makefile
+  liblogger/Makefile
   tools/Makefile
   Makefile
 ])
+AC_CONFIG_MACRO_DIRS([m4])
 AC_OUTPUT

@@ -22,6 +22,7 @@
 #include "utils.h"
 #include "event.h"
 #include "dozor.h"
+#include "../liblogger/liblogger.h"
 
 union rawMessage {
   struct {
@@ -31,118 +32,7 @@ union rawMessage {
   uint8_t raw[BUFFERSIZE];
 };
 
-int dozor_unpack(CryptoSession * crypto, connectionInfo * conn, 
-  uint8_t * raw,
-  void (* callback)(),
-  const unsigned short int debugMode)
-{
-  char * pinCode = conn->pinCode;
-
-  uint8_t * ptr;
-  int c, n;
-  int msgLength;
-  unsigned short int index, dataIndex;  
-  short int result;
-  union rawMessage packet;
-  DozorReport * report;
-  EventInfo * eventInfo;
-  
-  if (crypto == NULL)
-  {
-    fprintf(stderr, "Unable to allocate memory for crypto session: %s\n", strerror(errno));
-    return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_CRYPTO_SESSION; 
-  }
-  memcpy(&packet, raw, BUFFERSIZE);
-
-  msgLength = strtol(packet.data.aLength, 0, 10) + 4;
-  
-  short int initialized = initializeDozorCrypto(crypto, (const unsigned char *) pinCode, (const unsigned char *) packet.raw, msgLength - 4, debugMode);
-  if (initialized)
-  {
-    printf("Crypto session not initialized. Error - %d\n", initialized);
-    return HANDLER_CRYPTO_SESSION_NOT_INITIALIZED;
-  }
-  
-  ptr = (uint8_t*) packet.raw;
-
-  if (debugMode)
-  {
-    printf("\n>>> Incoming message...\n");
-    printf("[%d]: ", msgLength - 4);
-    for (index = 0; index < msgLength; index++)
-    {
-      printf("%02X", *(ptr + index));
-    }
-    printf("\n");
-    printf(">>> Incoming message End\n");
-  }
-
-  report = malloc(sizeof(DozorReport));
-  if (report == NULL)
-  {
-    fprintf(stderr, "Unable to allocate memory for report: %s\n", strerror(errno));
-    return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
-  }
-
-  result = getReport(report, crypto, (const unsigned char *) packet.raw, msgLength);
-  if ( result < 0)
-  {
-    fprintf(stderr, "ERROR: Unable to recognize message!!! Error - %d\n", result);
-    free(report);
-    return HANDLER_UNABLE_TO_RECOGNIZE_MESSAGE;
-  }
-
-  if (debugMode)
-  {
-    printf(">>> Total %d events found\n", report->eventTotals);
-  }
-
-  if (report->eventTotals == 0)
-  {
-    eventInfo = malloc(sizeof(EventInfo));
-    if (eventInfo == NULL)
-    {
-      fprintf(stderr, "Unable to allocate memory for event info structure: %s\n", strerror(errno));
-      return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
-    }
-    getKeepAliveEvent(eventInfo, report->site, &(report->info));
-    
-    if (debugMode)
-    {
-      printf("[%d] %s\n", eventInfo->eventType, eventInfo->event);
-    }
-
-    callback(conn, eventInfo);
-
-    free(eventInfo);
-  }
-
-  for (index = 0; index < report->eventTotals; index++)
-  {
-    eventInfo = malloc(sizeof(EventInfo));
-    if (eventInfo == NULL)
-    {
-      fprintf(stderr, "Unable to allocate memory for event info structure: %s\n", strerror(errno));
-      return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
-    }
-
-    convertDeviceEventToCommon(eventInfo, report->site, &(report->events[index]));
-    
-    if (debugMode) {
-      printf("[%d] %s\n", eventInfo->eventType, eventInfo->event);
-    }
-    callback(conn, eventInfo);
-
-    free(eventInfo);
-  }
-  
-  free(report);
-
-  return 0;
-}
-
-// unknown
-Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, const unsigned short int debugMode)
+Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode)
 {
   uint8_t * ptr;
   int c, n;
@@ -174,8 +64,7 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
     crypto,
     (const unsigned char *) pinCode,
     (const unsigned char *) packet.raw,
-    msgLength - 4, // strtol(packet.data.aLength, 0, 10)
-    debugMode 
+    msgLength - 4 // strtol(packet.data.aLength, 0, 10)
   );
   if (initError)
   {
@@ -186,17 +75,7 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
   
   ptr = (uint8_t*) packet.raw;
 
-  if (debugMode)
-  {
-    printf("\n>>> Incoming message...\n");
-    printf("[%d]: ", msgLength - 4);
-    for (index = 0; index < msgLength; index++)
-    {
-      printf("%02X", *(ptr + index));
-    }
-    printf("\n");
-    printf(">>> Incoming message End\n");
-  }
+  logger(LOG_LEVEL_DEBUG, "libdozor", "Incoming length - %d, %s", msgLength - 4, blobToHexStr(ptr, msgLength));
 
   deviceReport = malloc(sizeof(DozorReport));
   if (deviceReport == NULL)
@@ -215,10 +94,7 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
     return events;
   }
 
-  if (debugMode)
-  {
-    printf(">>> Total %d events found\n", deviceReport->eventTotals);
-  }
+  logger(LOG_LEVEL_DEBUG, "libdozor", "Total %d events found", deviceReport->eventTotals);
 
   if (deviceReport->eventTotals == 0)
   {
@@ -230,10 +106,7 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
     }
     getKeepAliveEvent(eventInfo, deviceReport->site, &(deviceReport->info));
     
-    if (debugMode)
-    {
-      printf("[%d] %s\n", eventInfo->eventType, eventInfo->event);
-    }
+    logger(LOG_LEVEL_DEBUG, "libdozor", "[%d] %s", eventInfo->eventType, eventInfo->event);
 
     events->length = 1;
     events->errorCode = 0;
@@ -257,9 +130,7 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
 
     convertDeviceEventToCommon(eventInfo, deviceReport->site, &(deviceReport->events[index]));
     
-    if (debugMode) {
-      printf("[%d] %s\n", eventInfo->eventType, eventInfo->event);
-    }
+    logger(LOG_LEVEL_DEBUG, "libdozor", "[%d] %s", eventInfo->eventType, eventInfo->event);
     
     memcpy(&(events->items[index]), eventInfo, sizeof(EventInfo));
 
@@ -274,9 +145,12 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode, c
   return events;
 }
 
-unsigned short int dozor_pack(CommandResponse * command, 
-  CryptoSession * crypto, unsigned int commandId, char * commandValue,
-  const unsigned short int debugMode)
+unsigned short int dozor_pack(
+  CommandResponse * command, 
+  CryptoSession * crypto, 
+  const unsigned int commandId, 
+  char * commandValue
+)
 {
   int n;
   unsigned short int answerLength, index;
@@ -310,11 +184,7 @@ unsigned short int dozor_pack(CommandResponse * command,
 
   if ((strlen(commandValue) > 1) && (commandId > 0))
   {      
-      sprintf(cmdValue, "%s&%08x", commandValue, __builtin_bswap32(commandId));
-      if (debugMode)
-      {
-        printf("***libdozor.c: New command - %s\n", cmdValue);
-      }
+    logger(LOG_LEVEL_DEBUG, "libdozor", "New command - %s", cmdValue);
   } else {
     strcpy(cmdValue, DEFAULT_ANSWER);
   }
@@ -334,10 +204,7 @@ unsigned short int dozor_pack(CommandResponse * command,
 
   strcat(answer, "!");
   
-  if (debugMode)
-  {
-    printf("***libdozor.c: command - %s (%d)\n", answer, answerLength);
-  }
+  logger(LOG_LEVEL_DEBUG, "libdozor", "command - %s (%d)", answer, answerLength);
 
   memcpy(response->encrypted, answer, sizeof(char) * answerLength);
   
@@ -350,34 +217,36 @@ unsigned short int dozor_pack(CommandResponse * command,
     return -1;
   }
   
-  if (debugMode)
-  {
-    ptr = (uint8_t*) response->encrypted;
-    printf("\n***libdozor.c: encrypted response: ");
-    for (index = 0; index < answerLength; index++)
-    {
-      printf("%02X", *(ptr + index));
-    }
-    printf("\n");
+  // if (debugMode)
+  // {
+  //   ptr = (uint8_t*) response->encrypted;
+  //   printf("\n***libdozor.c: encrypted response: ");
+  //   for (index = 0; index < answerLength; index++)
+  //   {
+  //     printf("%02X", *(ptr + index));
+  //   }
+  //   printf("\n");
 
-    ptr = (uint8_t*) response;
-    printf("\n***libdozor.c: response: ");
-    for (index = 0; index < answerLength + 6; index++)
-    {
-      printf("%02X", *(ptr + index));
-    }
-    printf("\n");
-  }
+  //   ptr = (uint8_t*) response;
+  //   printf("\n***libdozor.c: response: ");
+  //   for (index = 0; index < answerLength + 6; index++)
+  //   {
+  //     printf("%02X", *(ptr + index));
+  //   }
+  //   printf("\n");
+  // }
 
   memcpy(&command->response, response, sizeof(DozorResponse));
   command->responseLength = answerLength + 6;
   
   free(cmdValue);
-  printf("\n***libdozor.c: cmdValue freed");
+  logger(LOG_LEVEL_DEBUG, "libdozor", "cmdValue freed");
+  
   free(answer);
-  printf("\n***libdozor.c: answer freed");
+  logger(LOG_LEVEL_DEBUG, "libdozor", "answer freed");
+  
   free(response);
-  printf("\n***libdozor.c: response freed\n");
+  logger(LOG_LEVEL_DEBUG, "libdozor", "response freed");
 
   return 0;
 }

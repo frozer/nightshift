@@ -20,9 +20,8 @@
 #include <string.h>
 #include <inttypes.h>
 #include <errno.h>
+#include "../liblogger/liblogger.h"
 #include "device-event.h"
-
-extern unsigned short int debugMode;
 
 const unsigned char MSGDATASIZE[68] = { 
   0, 2, 2, 1, 1,
@@ -58,10 +57,8 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
 
   if (bufSize == 0)
   {
-    if (debugMode == 1)
-    {
-      printf("***device-event(getDeviceEvents): No events\n");
-    }
+    logger(LOG_LEVEL_DEBUG, "device-event(getDeviceEvents)", "No events\n");
+    
     free(deviceEvent);
     return 0;
   }
@@ -73,10 +70,7 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
     getDeviceEvent(deviceEvent, &raw[index], eventSize);
     memcpy(&events[eventCount], deviceEvent, sizeof(DeviceEvent));
 
-    if (debugMode == 1)
-    {
-      printf("***device-event(getDeviceEvents): event id 0x%x at position %d, size - %d\n", raw[index], index, eventSize);
-    }
+    logger(LOG_LEVEL_DEBUG, "device-event(getDeviceEvents)", "event id 0x%x at position %d, size - %d\n", raw[index], index, eventSize);
 
     eventCount += 1;
     index = index + eventSize;

@@ -156,17 +156,17 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
     return (void *) -1;
   }
 
-  Events * events = dozor_unpackV2(crypto, data, appConfig.pinCode, appConfig.debug);
+  Events * events = dozor_unpackV2(crypto, data, appConfig.pinCode);
 
   if (events != NULL && events->errorCode == 0) {
     snprintf(logMessage, sizeof(logMessage), "Total events - %d", events->length);
-    logger(LOG_LEVEL_DEBUG, clientIp, logMessage);
+    prettyLogger(LOG_LEVEL_DEBUG, clientIp, logMessage);
 
     for (index = 0; index < events->length; index++) {
       pthread_t publishThread = 0;
 
       snprintf(logMessage, sizeof(logMessage), "%s", events->items[index].event);
-      logger(LOG_LEVEL_INFO, clientIp, logMessage);
+      prettyLogger(LOG_LEVEL_INFO, clientIp, logMessage);
       
       strncpy(payload->deviceIp, clientIp, sizeof(char) * 16);
       memcpy(payload->data, &events->items[0], sizeof(EventInfo));
@@ -184,36 +184,36 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
     short int found = getNextCommandIdx(commands);
     if (found != -1) {
       snprintf(logMessage, sizeof(logMessage), "Sending cmd - \"%s\"", commands->items[found].value);
-      logger(LOG_LEVEL_INFO, "-", logMessage);
-      res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value, appConfig.debug);
+      prettyLogger(LOG_LEVEL_INFO, "-", logMessage);
+      res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value);
       
       // @todo mark command as "sent", make it "done" once device returns command execution result
       pthread_mutex_lock(&commandsWriteLock);
       commands->items[found].done = 1; 
       pthread_mutex_unlock(&commandsWriteLock);
 
-      logger(LOG_LEVEL_DEBUG, "-", "Command encrypted");
+      prettyLogger(LOG_LEVEL_DEBUG, "-", "Command encrypted");
     } else {
-      logger(LOG_LEVEL_DEBUG, "-", "No active command found, using default command");
-      res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER, appConfig.debug);
+      prettyLogger(LOG_LEVEL_DEBUG, "-", "No active command found, using default command");
+      res = dozor_pack(response, crypto, 1, DEFAULT_ANSWER);
     }
     
     if (response == NULL || res == -1) {
-      logger(LOG_LEVEL_DEBUG, "-", "Unable to encrypt command! Freeing memory...");
+      prettyLogger(LOG_LEVEL_DEBUG, "-", "Unable to encrypt command! Freeing memory...");
     
       free(payload->deviceIp);
       free(payload->data);
       free(payload);
       free(crypto);
     
-      logger(LOG_LEVEL_DEBUG, "-", "Unable to encrypt command! Freeing memory...completed. Exiting...");
+      prettyLogger(LOG_LEVEL_DEBUG, "-", "Unable to encrypt command! Freeing memory...completed. Exiting...");
     
       fprintf(stderr, "Unable to encrypt command!\n");
       return (void *) -1;
     }
   } else {
     snprintf(logMessage, sizeof(logMessage), "Unable to unpack events! Error code - %d. Freeing memory...", events->errorCode);
-    logger(LOG_LEVEL_DEBUG, "-", logMessage);
+    prettyLogger(LOG_LEVEL_DEBUG, "-", logMessage);
     
     // @todo handle error code value
     free(payload->deviceIp);
@@ -221,15 +221,15 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
     free(payload);
     free(crypto);
 
-    logger(LOG_LEVEL_DEBUG, "-", "Unable to unpack events! Freeing memory...completed. Exiting...");
+    prettyLogger(LOG_LEVEL_DEBUG, "-", "Unable to unpack events! Freeing memory...completed. Exiting...");
     
     return (void *) events->errorCode;
   }
 
 
-  logger(LOG_LEVEL_DEBUG, "-", "Freeing crypto...");
+  prettyLogger(LOG_LEVEL_DEBUG, "-", "Freeing crypto...");
   free(crypto);
-  logger(LOG_LEVEL_DEBUG, "-", "Freeing crypto...completed. Exiting...");
+  prettyLogger(LOG_LEVEL_DEBUG, "-", "Freeing crypto...completed. Exiting...");
 
   return (void *) 0;
 }
@@ -238,7 +238,7 @@ void * mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mos
 {
   char logMessage[256];
   snprintf(logMessage, sizeof(logMessage), "Command - %s", (char *) message->payload);
-  logger(LOG_LEVEL_INFO, "MQTT", logMessage);
+  prettyLogger(LOG_LEVEL_INFO, "MQTT", logMessage);
 	
   pthread_mutex_lock(&commandsWriteLock);
   
@@ -263,19 +263,19 @@ int main(int argc, char **argv)
 
   if (appConfig.mqttConfig.siteId == 0)
   {
-    logger(LOG_LEVEL_ERROR, "-", "Guard device ID is not set. Exiting.");
+    prettyLogger(LOG_LEVEL_ERROR, "-", "Guard device ID is not set. Exiting.");
 		return 0;  
   }
 
   if (appConfig.pinCode == "")
   {
-    logger(LOG_LEVEL_ERROR, "-", "Guard device pincode is not set. Exiting.");
+    prettyLogger(LOG_LEVEL_ERROR, "-", "Guard device pincode is not set. Exiting.");
 		return 0;  
   }
 
   char logMessage[256];
   snprintf(logMessage, sizeof(logMessage), "Guard device ID %d", appConfig.mqttConfig.siteId);
-  logger(LOG_LEVEL_INFO, "-", logMessage);
+  prettyLogger(LOG_LEVEL_INFO, "-", logMessage);
 
   pthread_mutex_init(&commandsWriteLock, NULL);
 
@@ -296,6 +296,9 @@ int main(int argc, char **argv)
   disconnectMQTT();
 
   pthread_exit(NULL);
+
+  free(&appConfig.mqttConfig);
+  free(&appConfig.socketConfig);
 
   free(commands);
   

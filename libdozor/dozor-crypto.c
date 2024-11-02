@@ -17,24 +17,21 @@
 
 #include <stdio.h>
 #include <inttypes.h>
+#include "../liblogger/liblogger.h"
 #include "dozor-crypto.h"
 #include "utils.h"
 #include "rc4.h"
 
-extern unsigned short int debugMode = 0;
-
 short int initializeDozorCrypto(CryptoSession * crypto, 
   const unsigned char* userKey, const unsigned char * data, 
-  const size_t dataLength,
-  const unsigned short int masterDebugMode)
+  const size_t dataLength
+  )
 {
   wchar_t key[strlen(userKey)];
   union PKEY seededKey;
   uint32_t seed;
   uint8_t site;
   unsigned short int index;
-
-  debugMode = masterDebugMode;
 
   if (crypto == NULL) {
     return ERROR_CRYPTO_SESSION_NOT_INITIALIZED;    
@@ -44,10 +41,7 @@ short int initializeDozorCrypto(CryptoSession * crypto,
   crypto->pointer = 0;
 
   if (dataLength < SEED + 2) {
-    if (debugMode == 1)
-    {
-      printf("***dozor-crypto(initializeDozorCrypto) ERROR: message too short - %ld!\n", dataLength);
-    }
+    logger(LOG_LEVEL_DEBUG, "dozor-crypto(initializeDozorCrypto)", "ERROR: message too short - %ld!", dataLength);
     return ERROR_MESSAGE_TOO_SHORT;
   }
 
@@ -62,14 +56,14 @@ short int initializeDozorCrypto(CryptoSession * crypto,
 
   getCryptoSession(crypto, (unsigned char*) &(seededKey.z));
 
-  if (debugMode == 1)
+ 
+  logger(LOG_LEVEL_DEBUG, "dozor-crypto(initializeDozorCrypto)", "Enriched key START");
+  for (index = 0; index < 4; index++)
   {
-    printf("\n***dozor-crypto(initializeDozorCrypto) Enriched key ***\n");
-    for (index = 0; index < 4; index++)
-    {
-      printf("[%d]: 0x%x\n", index, seededKey.y[index]);
-    }
+    logger(LOG_LEVEL_DEBUG, "dozor-crypto(initializeDozorCrypto)", "[%d]: 0x%x", index, seededKey.y[index]);
   }
+  logger(LOG_LEVEL_DEBUG, "dozor-crypto(initializeDozorCrypto)", "Enriched key END");
+
   return 0;
 }
 
@@ -107,62 +101,47 @@ short int getReport(DozorReport * report, CryptoSession * crypto, const unsigned
 
   if (dataLength - DEVICE_MESSAGE_LENGTH != actualDataLength)
   {
-    if (debugMode == 1)
-    {
-      printf("***dozor-crypto(getReport) ERROR: message length not equal calculated length (%ld != %d)\n", actualDataLength, dataLength - DEVICE_MESSAGE_LENGTH != actualDataLength);
-    }
-
+    logger(LOG_LEVEL_ERROR, "dozor-crypto(getReport)", "Incoming message length not equal calculated length (%ld != %d)", actualDataLength, dataLength - DEVICE_MESSAGE_LENGTH != actualDataLength);
+    
     return ERROR_LENGTH_MISMATCH;
   }
 
   if (message.opened.magic != MAGIC_MESSAGE_START_FLAG)
   {
-    if (debugMode == 1)
-    {
-      printf("***dozor-crypto(getReport) ERROR: message magic number not exists\n");
-    }
-    
+    logger(LOG_LEVEL_ERROR, "dozor-crypto(getReport)", "Incoming message magic number not exists");
     return ERROR_NO_START_FLAG;
   }
   
-  if (debugMode == 1)
-  {
-    printf("***dozor-crypto(getReport) New Dozor Message ***\n");
-    printf("Total message length - %ld\n", dataLength);
-    printf("Length from message - %ld\n", actualDataLength);    
-    printf("Magic field - %d\n", message.opened.magic);
-    printf("Site - %d\n", message.opened.site);
-    printf("Seed - 0x%x\n", message.opened.seed);
-  }
+  logger(LOG_LEVEL_DEBUG, "dozor-crypto(getReport)", "New Dozor Message");
+  logger(LOG_LEVEL_DEBUG, "dozor-crypto(getReport)", "Total message length - %ld", dataLength);
+  logger(LOG_LEVEL_DEBUG, "dozor-crypto(getReport)", "Length from message - %ld", actualDataLength);    
+  logger(LOG_LEVEL_DEBUG, "dozor-crypto(getReport)", "Magic field - %d", message.opened.magic);
+  logger(LOG_LEVEL_DEBUG, "dozor-crypto(getReport)", "Site - %d", message.opened.site);
+  logger(LOG_LEVEL_DEBUG, "dozor-crypto(getReport)", "Seed - 0x%x", message.opened.seed);
 
   codec((unsigned char*) &message.closed, crypto, closedLength);
 
   // check is decryption correct - last two bytes should be 0x21
   closedLength = closedLength - 2;
 
-  if (debugMode == 1)
+  for (index = 0; index < closedLength; index++)
   {
-    for (index = 0; index < closedLength; index++)
-    {
-      printf("***dozor-crypto(getReport) [%d]: 0x%x\n", index, message.closed.raw[index]);
-    }
+    char logRecord[10];
+    // sprintf(logRecord, "[%d]: 0x%x", index, message.closed.raw[index]);
+    // logger(LOG_LEVEL_DEBUG, "dozor-crypto(getReport)", logRecord);
   }
 
   if (message.closed.raw[closedLength] != MAGIC_DECRYPTED_TAILEND)
   {
-    if (debugMode == 1)
-    {
-      printf("***dozor-crypto(getReport) ERROR: MAGIC_DECRYPTED_TAILEND #1 check %#x != %#x at position %ld\n", message.closed.raw[closedLength], MAGIC_DECRYPTED_TAILEND, closedLength);
-    }
+    logger(LOG_LEVEL_ERROR, "dozor-crypto(getReport)", "MAGIC_DECRYPTED_TAILEND #1 check %#x != %#x at position %ld", message.closed.raw[closedLength], MAGIC_DECRYPTED_TAILEND, closedLength);
+
     return ERROR_DECRYPT_FAIL;
   }
 
   if (message.closed.raw[closedLength + 1] != MAGIC_DECRYPTED_TAILEND)
   {
-    if (debugMode == 1)
-    {
-      printf("***dozor-crypto(getReport) ERROR: MAGIC_DECRYPTED_TAILEND #2 check %#x != %#x at position %ld\n", message.closed.raw[closedLength + 1], MAGIC_DECRYPTED_TAILEND, closedLength + 1);
-    }
+    logger(LOG_LEVEL_ERROR, "dozor-crypto(getReport)", "MAGIC_DECRYPTED_TAILEND #2 check %#x != %#x at position %ld", message.closed.raw[closedLength + 1], MAGIC_DECRYPTED_TAILEND, closedLength + 1);
+    
     return ERROR_DECRYPT_FAIL;
   }
 

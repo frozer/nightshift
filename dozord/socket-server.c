@@ -49,7 +49,7 @@ void log_incoming_data(const char *clientIp, uint8_t *data, int data_length) {
     // Ensure the string is null-terminated
     logMessage[offset - 1] = '\0';  // Replace the last space with a null terminator
 
-    logger(LOG_LEVEL_DEBUG, clientIp, logMessage);
+    prettyLogger(LOG_LEVEL_DEBUG, clientIp, logMessage);
 }
 
 void * connectionCb(void * payload) {
@@ -102,7 +102,7 @@ void * connectionCb(void * payload) {
       written += n;
     }
 
-    logger(LOG_LEVEL_DEBUG, "TCP", "Data sent.");     
+    prettyLogger(LOG_LEVEL_DEBUG, "TCP", "Data sent.");     
   }
 
   free(responsePayload);
@@ -116,7 +116,7 @@ void * connectionCb(void * payload) {
 
   // @todo going to be LOG_LEVEL_DEBUG
   snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
-  logger(LOG_LEVEL_DEBUG, "TCP", logMessage);   
+  prettyLogger(LOG_LEVEL_DEBUG, "TCP", logMessage);   
 
   pthread_exit(NULL);
 }
@@ -167,7 +167,7 @@ void * startSocketListener(void * args) {
 	}
 
   snprintf(logMessage, sizeof(logMessage), "Listen *:%d", socketConfig->port);
-  logger(LOG_LEVEL_INFO, "TCP", logMessage);
+  prettyLogger(LOG_LEVEL_INFO, "TCP", logMessage);
 
   while(!socketExitRequested)
   {
@@ -201,7 +201,6 @@ void * startSocketListener(void * args) {
 
         strncpy(payload->clientIp, clientIp, sizeof(clientIp));
         payload->sockfd = newsockfd;
-        payload->debug = socketConfig->debug;
         payload->on_message = socketConfig->on_message;
         payload->workerId = availableSlot;
 
@@ -215,12 +214,12 @@ void * startSocketListener(void * args) {
         pthread_mutex_unlock(&GlobaSocketLock);
 
     } else {
-      logger(LOG_LEVEL_DEBUG, "TCP", "No more connections left...");
+      prettyLogger(LOG_LEVEL_DEBUG, "TCP", "No more connections left...");
       sleep(1);
     }
   }
 
-  logger(LOG_LEVEL_INFO, "TCP", "Closing client connections...");
+  prettyLogger(LOG_LEVEL_INFO, "TCP", "Closing client connections...");
   for (int j = 0; j < MAX_CONN; j++) {
     if (connectionWorkers[j]) {
       pthread_cancel(connectionWorkers[j]);
@@ -231,7 +230,7 @@ void * startSocketListener(void * args) {
       pthread_mutex_unlock(&GlobaSocketLock);
     }
   }
-  logger(LOG_LEVEL_INFO, "TCP", "Client connections closed.");
+  prettyLogger(LOG_LEVEL_INFO, "TCP", "Client connections closed.");
 
   close(sockfd);
 
