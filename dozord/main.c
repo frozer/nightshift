@@ -289,7 +289,7 @@ int main(int argc, char **argv)
   startSocketService(&appConfig.socketConfig);
 
   while (!exitRequested) {
-    
+    sleep(1);
   }
   
   pthread_mutex_destroy(&commandsWriteLock);
