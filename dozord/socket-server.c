@@ -114,7 +114,6 @@ void * connectionCb(void * payload) {
   connectionWorkers[connInfo->workerId] = 0;
   pthread_mutex_unlock(&GlobaSocketLock);
 
-  // @todo going to be LOG_LEVEL_DEBUG
   snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
   prettyLogger(LOG_LEVEL_DEBUG, "TCP", logMessage);   
 

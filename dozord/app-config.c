@@ -3,7 +3,6 @@
 #include <string.h>
 #include <unistd.h>
 #include "app-config.h"
-#include "logger.h"
 
 void displayHelp()
 {
@@ -14,6 +13,8 @@ void displayHelp()
 void processCommandLineOptions(int argc, char **argv, struct AppConfig *appConfig) {
     int opt;
     static const char *optString = "l:k:s:m:p:h?:d";
+    
+    appConfig->logLevel = LOG_LEVEL_INFO;
 
     while ((opt = getopt(argc, argv, optString)) != -1) {
         switch (opt) {
@@ -44,7 +45,7 @@ void processCommandLineOptions(int argc, char **argv, struct AppConfig *appConfi
                 break;
 
             case 'd':
-                set_log_level(LOG_LEVEL_DEBUG);
+                appConfig->logLevel = LOG_LEVEL_DEBUG;
                 break;
 
             default:
