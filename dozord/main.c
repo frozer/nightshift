@@ -255,11 +255,14 @@ int main(int argc, char **argv)
   action.sa_handler = term;
   sigaction(SIGTERM, &action, NULL);
 
+  appConfig.logLevel = LOG_LEVEL_INFO;
   
   initializeAppConfig(&appConfig);
   appConfig.socketConfig.on_message = socket_message_callback;
 
   processCommandLineOptions(argc, argv, &appConfig);
+
+  set_log_level(appConfig.logLevel);
 
   if (appConfig.mqttConfig.siteId == 0)
   {

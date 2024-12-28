@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "socket-server.h"
 #include "nightshift-mqtt.h"
+#include "logger.h"
 
 #define DEFAULT_PORT 1111
 #define AGENT_ID "80d7be61-d81d-4aac-9012-6729b6392a89"
@@ -15,6 +16,7 @@ struct AppConfig {
   struct MQTTConfig mqttConfig;
   char pinCode[36];
   unsigned int siteId;
+  LogLevel logLevel;
 };
 
 void initializeAppConfig(struct AppConfig *appConfig);
