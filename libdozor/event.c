@@ -363,10 +363,16 @@ static char * getFirmwareVersionEventData(uint8_t type, uint8_t * data, uint8_t 
   char * template = ",\"event\":\"%s\",\"scope\":\"Common\",\"version\":\"%ld.%s\"";
   char * res;
   char * subVersion = getData(data, DEFAULT_DATA_POSITION, len);
-  long int version = strtol(getData(data, VERSION_DATA_POSITION, len), 0, 10) & VERSION_MASK;
+  char * subVersionData = getData(data, VERSION_DATA_POSITION, len);
+  long int version = strtol(subVersionData, 0, 10) & VERSION_MASK;
+  char * eventName = getEventNameByType(type);
 
   res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 4));
-  sprintf(res, template, getEventNameByType(type), version, subVersion); 
+  sprintf(res, template, eventName, version, subVersion); 
+
+  free(subVersion);
+  free(subVersionData);
+  free(eventName);
 
   return res;
 }
@@ -384,8 +390,14 @@ static char * getCommandEventData(uint8_t type, uint8_t * data, uint8_t len)
   char * cmdId = getData(data, DEFAULT_DATA_POSITION, len);
   logger(LOG_LEVEL_DEBUG, "event.c(getCommandEventData)", "command id %s, position - %d, length - %d", cmdId, DEFAULT_DATA_POSITION, len);
   
+  char * eventName = getEventNameByType(type);
+
   res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + MAX_COMMAND_RESULT_NAME_LENGTH + 4));
-  sprintf(res, template, getEventNameByType(type), cmdId, cmdResult, cmdResultName); 
+  sprintf(res, template, eventName, cmdId, cmdResult, cmdResultName); 
+
+  free(cmdResult);
+  free(cmdId);
+  free(eventName);
 
   return res;
 }
@@ -394,8 +406,13 @@ static char * getReportEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"temp\":%s,\"event\":\"%s\",\"scope\":\"Common\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
-  
-  sprintf(res, template, getData(data, REPORT_TEMP_DATA_POSITION, len), getEventNameByType(type));
+  char * extractedData = getData(data, REPORT_TEMP_DATA_POSITION, len);
+  char * eventName = getEventNameByType(type);
+
+  sprintf(res, template, extractedData, eventName);
+
+  free(extractedData);
+  free(eventName);
 
   return res;
 }
@@ -404,8 +421,13 @@ static char * getAuthEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"user\":%s,\"event\":\"%s\",\"scope\":\"Auth\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
+  char * extractedData = getData(data, DEFAULT_DATA_POSITION, len);
+  char * eventName = getEventNameByType(type);
+
+  sprintf(res, template, extractedData, eventName);
   
-  sprintf(res, template, getData(data, DEFAULT_DATA_POSITION, len), getEventNameByType(type));
+  free(extractedData);
+  free(eventName);
 
   return res;
 }
@@ -414,8 +436,13 @@ static char * getSecurityEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"user\":%s,\"event\":\"%s\",\"scope\":\"Security\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
-  
-  sprintf(res, template, getData(data, USER_DATA_POSITION, len), getEventNameByType(type));
+  char * extractedData = getData(data, USER_DATA_POSITION, len);
+  char * eventName = getEventNameByType(type);
+
+  sprintf(res, template, extractedData, eventName);
+
+  free(extractedData);
+  free(eventName);
 
   return res;
 }
@@ -424,8 +451,13 @@ static char * getZoneEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"zone\":%s,\"event\":\"%s\",\"scope\":\"Zone\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
-  
-  sprintf(res, template, getData(data, DEFAULT_DATA_POSITION, len), getEventNameByType(type));
+  char * extractedData = getData(data, DEFAULT_DATA_POSITION, len);
+  char * eventName = getEventNameByType(type);
+
+  sprintf(res, template, extractedData, eventName);
+
+  free(extractedData);
+  free(eventName);
 
   return res;
 }
@@ -434,8 +466,13 @@ static char * getSectionEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"section\":%s,\"event\":\"%s\",\"scope\":\"Section\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
+  char * extractedData = getData(data, DEFAULT_DATA_POSITION, len);
+  char * eventName = getEventNameByType(type);
+
+  sprintf(res, template, extractedData, eventName);
   
-  sprintf(res, template, getData(data, DEFAULT_DATA_POSITION, len), getEventNameByType(type));
+  free(extractedData);
+  free(eventName);
 
   return res;
 }
@@ -444,9 +481,12 @@ static char * getCommonEventData(uint8_t type, uint8_t * data, uint8_t len, char
 {
   char * template = ",\"event\":\"%s\",\"scope\":\"%s\"";
   char * res;
-  
+  char * eventName = getEventNameByType(type);
+
   res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 1 + strlen(scope)));
-  sprintf(res, template, getEventNameByType(type), scope); 
+  sprintf(res, template, eventName, scope); 
+
+  free(eventName);
 
   return res;
 }
