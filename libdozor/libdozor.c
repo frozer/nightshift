@@ -75,7 +75,17 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode)
   
   ptr = (uint8_t*) packet.raw;
 
-  logger(LOG_LEVEL_DEBUG, "libdozor", "Incoming length - %d, %s", msgLength - 4, blobToHexStr(ptr, msgLength));
+  // Allocate memory for the hex string (2 characters per byte + 1 for null terminator)
+  char *hexStr = (char *)malloc(msgLength * 2 + 1);
+  if (!hexStr) {
+      return NULL;  // Return NULL if memory allocation fails
+  }
+
+  blobToHexStr(hexStr, ptr, msgLength);
+
+  logger(LOG_LEVEL_DEBUG, "libdozor", "Incoming length - %d, message length - %d, %s", msgLength, msgLength - 4, hexStr);
+
+  free(hexStr);
 
   deviceReport = malloc(sizeof(DozorReport));
   if (deviceReport == NULL)
