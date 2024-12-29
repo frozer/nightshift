@@ -1,4 +1,4 @@
-![CI/CD Status](https://github.com/frozer/nightshift/actions/workflows/c-cpp.yaml/badge.svg)
+![CI/CD Status](https://github.com/frozer/nightshift/actions/workflows/c-cpp.yml/badge.svg)
 # NightShift - свободная реализация сервера управления Астра Дозор
 Выполняет роль сервера для приборов охранно-пожарной сигнализации Астра Дозор и реализует следующие функции:
 
