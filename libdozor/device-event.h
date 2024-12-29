@@ -22,6 +22,7 @@
 
 #define MAX_DEVICE_EVENT_DATA_SIZE 80
 #define MAX_EVENTS_PER_DEVICE 256
+// 4 bytes for date, 1 byte for event type id
 #define MESSAGE_ALIGN_SIZE 5
 
 typedef struct EVENT {
@@ -32,6 +33,5 @@ typedef struct EVENT {
 } DeviceEvent;
 
 unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, DeviceEvent * events);
-void getDeviceEvent(DeviceEvent *, const uint8_t *, unsigned short int eventSize);
 
 #endif

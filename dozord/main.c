@@ -184,7 +184,7 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
     short int found = getNextCommandIdx(commands);
     if (found != -1) {
       snprintf(logMessage, sizeof(logMessage), "Sending cmd - \"%s\"", commands->items[found].value);
-      prettyLogger(LOG_LEVEL_INFO, "-", logMessage);
+      prettyLogger(LOG_LEVEL_INFO, clientIp, logMessage);
       res = dozor_pack(response, crypto, commands->items[found].id, commands->items[found].value);
       
       // @todo mark command as "sent", make it "done" once device returns command execution result
@@ -213,7 +213,7 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
     }
   } else {
     snprintf(logMessage, sizeof(logMessage), "Unable to unpack events! Error code - %d. Freeing memory...", events->errorCode);
-    prettyLogger(LOG_LEVEL_DEBUG, "-", logMessage);
+    prettyLogger(LOG_LEVEL_INFO, clientIp, logMessage);
     
     // @todo handle error code value
     free(payload->deviceIp);

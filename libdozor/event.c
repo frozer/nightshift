@@ -209,7 +209,7 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
   eventInfo->eventType = ENUM_EVENT_TYPE_COMMONEVENT;
 
   const char * template = "{\"site\":%d,\"typeId\":%d,\"timestamp\":\"%s\",\"data\":\"";
-  char * timestamp = malloc(sizeof(char) * 25);
+  char * timestamp = "";
   char * res = malloc(sizeof(char) * 1024);
   unsigned short int index;
   char * temp = malloc(sizeof(char) * 3);
@@ -217,9 +217,11 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
   uint8_t * ptr = (uint8_t*) deviceEvent->data;
 
   char * parsedEvent;
+  char * parsedSubEvent;
 
-  memcpy(timestamp, getDateTime(deviceEvent->time), sizeof(char) * 25);
-  timestamp[24] = 0x0;
+  if (deviceEvent->time != 0x00000000) {
+    timestamp = getDateTime(deviceEvent->time);
+  }
 
   sprintf(res, template, site, deviceEvent->type, timestamp);
 
@@ -241,12 +243,14 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0xd:
     case 0xf:
       logger(LOG_LEVEL_DEBUG, "event.c", "handle zone event");
-      parsedEvent = getZoneEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
-
-      strcat(res, parsedEvent);
-      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      parsedSubEvent = getZoneEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedEvent = getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength);
+      
+      strcat(res, parsedSubEvent);
+      sprintf(eventInfo->sourceId, "%s", parsedEvent);
       eventInfo->eventType = ENUM_EVENT_TYPE_ZONEINFO;
       
+      free(parsedSubEvent);
       free(parsedEvent);
 
       break;
@@ -259,12 +263,14 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0x35:
     case 0x37:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling section event\n");
-      parsedEvent = getSectionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedSubEvent = getSectionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedEvent = getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength);
 
-      strcat(res, parsedEvent);
-      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      strcat(res, parsedSubEvent);
+      sprintf(eventInfo->sourceId, "%s", parsedEvent);
       eventInfo->eventType = ENUM_EVENT_TYPE_SECTIONINFO;
 
+      free(parsedSubEvent);
       free(parsedEvent);
 
       break;
@@ -272,10 +278,13 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     // AuthenticationEvent
     case 0x1b:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling authentication event");
-      parsedEvent = getAuthEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
-      strcat(res, parsedEvent);
-      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      parsedSubEvent = getAuthEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedEvent = getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength);
 
+      strcat(res, parsedSubEvent);
+      sprintf(eventInfo->sourceId, "%s", parsedEvent);
+
+      free(parsedSubEvent);
       free(parsedEvent);
 
       break;
@@ -284,13 +293,16 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0x39:
     case 0x3a:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling arm/disarm event");
-      parsedEvent = getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
-      strcat(res, parsedEvent);
-      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, USER_DATA_POSITION, deviceEvent->dataLength));
+      parsedSubEvent = getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedEvent = getData(deviceEvent->data, USER_DATA_POSITION, deviceEvent->dataLength);
+
+      strcat(res, parsedSubEvent);
+      sprintf(eventInfo->sourceId, "%s", parsedEvent);
       eventInfo->eventType = ENUM_EVENT_TYPE_ARM_DISARM;
       
+      free(parsedSubEvent);
       free(parsedEvent);
-
+      
       break;
 
     // SecurityEvent
@@ -363,11 +375,15 @@ static char * getFirmwareVersionEventData(uint8_t type, uint8_t * data, uint8_t 
   char * template = ",\"event\":\"%s\",\"scope\":\"Common\",\"version\":\"%ld.%s\"";
   char * res;
   char * subVersion = getData(data, DEFAULT_DATA_POSITION, len);
-  long int version = strtol(getData(data, VERSION_DATA_POSITION, len), 0, 10) & VERSION_MASK;
+  char * subVersionData = getData(data, VERSION_DATA_POSITION, len);
+  long int version = strtol(subVersionData, 0, 10) & VERSION_MASK;
 
   res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 4));
   sprintf(res, template, getEventNameByType(type), version, subVersion); 
 
+  free(subVersion);
+  free(subVersionData);
+  
   return res;
 }
 
@@ -387,6 +403,9 @@ static char * getCommandEventData(uint8_t type, uint8_t * data, uint8_t len)
   res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + MAX_COMMAND_RESULT_NAME_LENGTH + 4));
   sprintf(res, template, getEventNameByType(type), cmdId, cmdResult, cmdResultName); 
 
+  free(cmdResult);
+  free(cmdId);
+
   return res;
 }
 
@@ -394,9 +413,12 @@ static char * getReportEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"temp\":%s,\"event\":\"%s\",\"scope\":\"Common\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
+  char * extractedData = getData(data, REPORT_TEMP_DATA_POSITION, len);
   
-  sprintf(res, template, getData(data, REPORT_TEMP_DATA_POSITION, len), getEventNameByType(type));
+  sprintf(res, template, extractedData, getEventNameByType(type));
 
+  free(extractedData);
+  
   return res;
 }
 
@@ -404,8 +426,11 @@ static char * getAuthEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"user\":%s,\"event\":\"%s\",\"scope\":\"Auth\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
+  char * extractedData = getData(data, DEFAULT_DATA_POSITION, len);
+
+  sprintf(res, template, extractedData, getEventNameByType(type));
   
-  sprintf(res, template, getData(data, DEFAULT_DATA_POSITION, len), getEventNameByType(type));
+  free(extractedData);
 
   return res;
 }
@@ -414,9 +439,11 @@ static char * getSecurityEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"user\":%s,\"event\":\"%s\",\"scope\":\"Security\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
-  
-  sprintf(res, template, getData(data, USER_DATA_POSITION, len), getEventNameByType(type));
+  char * extractedData = getData(data, USER_DATA_POSITION, len);
 
+  sprintf(res, template, extractedData, getEventNameByType(type));
+
+  free(extractedData);
   return res;
 }
 
@@ -424,9 +451,10 @@ static char * getZoneEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"zone\":%s,\"event\":\"%s\",\"scope\":\"Zone\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
-  
-  sprintf(res, template, getData(data, DEFAULT_DATA_POSITION, len), getEventNameByType(type));
+  char * extractedData = getData(data, DEFAULT_DATA_POSITION, len);
+  sprintf(res, template, extractedData, getEventNameByType(type));
 
+  free(extractedData);
   return res;
 }
 
@@ -434,8 +462,11 @@ static char * getSectionEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"section\":%s,\"event\":\"%s\",\"scope\":\"Section\"";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
+  char * extractedData = getData(data, DEFAULT_DATA_POSITION, len);
   
-  sprintf(res, template, getData(data, DEFAULT_DATA_POSITION, len), getEventNameByType(type));
+  sprintf(res, template, extractedData, getEventNameByType(type));
+  
+  free(extractedData);
 
   return res;
 }

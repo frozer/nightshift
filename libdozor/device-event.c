@@ -23,21 +23,44 @@
 #include "liblogger.h"
 #include "device-event.h"
 
-const unsigned char MSGDATASIZE[68] = { 
+static const unsigned char MSGDATASIZE[68] = {
+  // 0 - 4 
   0, 2, 2, 1, 1,
+  // 5 - 9
   1, 1, 1, 1, 1, 
+  // 10 - 14
   1, 1, 1, 1, 1,
+  // 15 - 19
   1, 1, 4, 0, 0,
+  // 20 - 24
   0, 1, 1, 0, 0,
+  // 25 - 29
   0, 1, 1, 1, 1,
+  // 30 - 34
   1, 1, 1, 0, 2,
+  // 35 - 39
   2, 4, 4, 0, 16,
+  // 40 - 44
   1, 0, 17, 1, 1,
+  // 45 - 49
   1, 1, 1, 1, 1,
+  // 50 - 54
   1, 1, 1, 1, 1,
+  // 55 - 59
   1, 1, 4, 4, 1,
+  // 60 - 64
   1, 1, 1, 5, 3,
+  // 65 - 68
   37, 4, 73 };
+
+static void getDeviceEvent(DeviceEvent * deviceEvent, const uint8_t * raw, unsigned short int eventDataSize)
+{
+  deviceEvent->type = raw[0];
+  deviceEvent->dataLength = eventDataSize;
+
+  memcpy(&deviceEvent->time, &raw[1], sizeof(deviceEvent->time));
+  memcpy(&deviceEvent->data, &raw[MESSAGE_ALIGN_SIZE], (size_t) eventDataSize);
+}
 
 unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, DeviceEvent events[])
 {
@@ -52,7 +75,7 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
   if (deviceEvent == NULL)
   {
     fprintf(stderr, "***device-event.c: Unable to allocate memory for device event: %s\n", strerror(errno));
-    return 64;
+    return 0;
   }
 
   memset(deviceEvent, 0, sizeof(DeviceEvent));
@@ -69,10 +92,18 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
   {
     eventSize = MSGDATASIZE[raw[index]] + MESSAGE_ALIGN_SIZE;
 
-    getDeviceEvent(deviceEvent, &raw[index], eventSize);
-    memcpy(&events[eventCount], deviceEvent, sizeof(DeviceEvent));
+    char *hexStr = (char *)malloc(eventSize * 2 + 1);
+    if (hexStr) {
+        
+      blobToHexStr(hexStr, &raw[index], eventSize);
 
-    logger(LOG_LEVEL_DEBUG, "device-event(getDeviceEvents)", "event id 0x%x at position %d, size - %d\n", raw[index], index, eventSize);
+      logger(LOG_LEVEL_DEBUG, "device-event(getDeviceEvents)", "event id 0x%x: %s", raw[index], hexStr);
+
+      free(hexStr);
+    }
+    
+    getDeviceEvent(deviceEvent, &raw[index], MSGDATASIZE[raw[index]]);
+    memcpy(&events[eventCount], deviceEvent, sizeof(DeviceEvent));
 
     eventCount += 1;
     index = index + eventSize;
@@ -81,17 +112,4 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
 
   free(deviceEvent);
   return eventCount;
-}
-
-void getDeviceEvent(DeviceEvent * deviceEvent, const uint8_t * raw, unsigned short int eventSize)
-{
-  unsigned short int eventDataSize = 0;
-  
-  eventDataSize = eventSize - sizeof(deviceEvent->time);
-  
-  deviceEvent->type = raw[0];
-  deviceEvent->dataLength = eventDataSize;
-
-  memcpy(&deviceEvent->time, &raw[5 + eventSize - sizeof(deviceEvent->time)], sizeof(deviceEvent->time));
-  memcpy(&deviceEvent->data, &raw[5], (size_t) eventDataSize);
 }
