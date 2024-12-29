@@ -169,8 +169,8 @@ unsigned short int dozor_pack(
   char * commandValue
 )
 {
-  int n;
-  unsigned short int answerLength, index;
+ 
+  unsigned short int answerLength;
   uint8_t * ptr;
   char * answer;
   char * cmdValue;
@@ -186,7 +186,10 @@ unsigned short int dozor_pack(
     fprintf(stderr, "***libdozor.c: Unable to allocate memory for response: %s\n", strerror(errno));
     return -1;
   }
-
+  response->time = time(NULL) - DATE_TIME_OFFSET;
+  response->unknownOne = 0;
+  response->unknownTwo = 0x7c;
+  
   cmdValue = malloc(sizeof(char) * 32);
   if (cmdValue == NULL)
   {
@@ -195,15 +198,13 @@ unsigned short int dozor_pack(
     return -1;
   }
 
-  response->time = time(NULL) - DATE_TIME_OFFSET;
-  response->unknownOne = 0;
-  response->unknownTwo = 0x7c;
-
   if ((strlen(commandValue) > 1) && (commandId > 0))
-  {      
+  {
+    sprintf(cmdValue, "%s&%08x", commandValue, __builtin_bswap32(commandId));      
     logger(LOG_LEVEL_DEBUG, "libdozor", "New command - %s", cmdValue);
   } else {
-    strcpy(cmdValue, DEFAULT_ANSWER);
+    strncpy(cmdValue, DEFAULT_ANSWER, 31);
+    cmdValue[31] = '\0';
   }
 
   answerLength = strlen(cmdValue) + 2;
@@ -217,47 +218,23 @@ unsigned short int dozor_pack(
     return -1;
   }
 
-  memcpy(answer, cmdValue, answerLength);
+  snprintf(answer, answerLength, "%s!", cmdValue);
+  free(cmdValue);
 
-  strcat(answer, "!");
-  
   logger(LOG_LEVEL_DEBUG, "libdozor", "command - %s (%d)", answer, answerLength);
 
   memcpy(response->encrypted, answer, sizeof(char) * answerLength);
   
   if (encrypt(response->encrypted, crypto, answerLength) != 0)
   {
-    free(cmdValue);
     free(response);
     fprintf(stderr, "Unable to encrypt message:\"%s\" %s\n", answer, strerror(errno));
     free(answer);
     return -1;
   }
   
-  // if (debugMode)
-  // {
-  //   ptr = (uint8_t*) response->encrypted;
-  //   printf("\n***libdozor.c: encrypted response: ");
-  //   for (index = 0; index < answerLength; index++)
-  //   {
-  //     printf("%02X", *(ptr + index));
-  //   }
-  //   printf("\n");
-
-  //   ptr = (uint8_t*) response;
-  //   printf("\n***libdozor.c: response: ");
-  //   for (index = 0; index < answerLength + 6; index++)
-  //   {
-  //     printf("%02X", *(ptr + index));
-  //   }
-  //   printf("\n");
-  // }
-
   memcpy(&command->response, response, sizeof(DozorResponse));
   command->responseLength = answerLength + 6;
-  
-  free(cmdValue);
-  logger(LOG_LEVEL_DEBUG, "libdozor", "cmdValue freed");
   
   free(answer);
   logger(LOG_LEVEL_DEBUG, "libdozor", "answer freed");
