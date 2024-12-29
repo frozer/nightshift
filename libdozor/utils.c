@@ -29,10 +29,12 @@ void char2utf8(wchar_t* dest, const unsigned char* src)
   mbstowcs(dest, src, new_length);
 }
 
-char * getDateTime(const uint32_t t)
-{
-  time_t ot;
-  struct tm * date;
-  ot = t + DATE_TIME_OFFSET;
-  return ctime(&ot);
+char * getDateTime(const uint32_t t) {
+    time_t ot = t + DATE_TIME_OFFSET;
+    struct tm *date = localtime(&ot);
+    char *buffer = malloc(26);  // Enough space for the formatted string
+    if (buffer != NULL) {
+        strftime(buffer, 26, "%a %b %d %H:%M:%S %Y", date);
+    }
+    return buffer;
 }
