@@ -20,7 +20,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <errno.h>
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 #include "device-event.h"
 
 const unsigned char MSGDATASIZE[68] = { 
@@ -55,6 +55,8 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
     return 64;
   }
 
+  memset(deviceEvent, 0, sizeof(DeviceEvent));
+  
   if (bufSize == 0)
   {
     logger(LOG_LEVEL_DEBUG, "device-event(getDeviceEvents)", "No events\n");

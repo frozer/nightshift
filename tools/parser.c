@@ -20,8 +20,8 @@
 #include <string.h>
 #include <time.h>
 #include <errno.h>
-#include <dozor.h>
-#include "../liblogger/liblogger.h"
+#include "dozor.h"
+#include "liblogger.h"
 
 #define BUFFERSIZE 1024
 

@@ -78,6 +78,8 @@ void * connectionCb(void * payload) {
     return -1;
   }
 
+  responsePayload->responseLength = 0;
+  
   // @todo handle return value, -1 - error
   connInfo->on_message(responsePayload, data, &connInfo->clientIp);
 
@@ -108,14 +110,14 @@ void * connectionCb(void * payload) {
   free(responsePayload);
   close(connInfo->sockfd);
 
-  free(connInfo);
-
   pthread_mutex_lock(&GlobaSocketLock);
   connectionWorkers[connInfo->workerId] = 0;
   pthread_mutex_unlock(&GlobaSocketLock);
-
+  
   snprintf(logMessage, sizeof(logMessage), "%s closed", connInfo->clientIp);
   prettyLogger(LOG_LEVEL_DEBUG, "TCP", logMessage);   
+  
+  free(connInfo);
 
   pthread_exit(NULL);
 }

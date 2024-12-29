@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "event.h"
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 
 const char events[EVENT_COUNT][MAX_EVENT_NAME_LENGTH] = {
 // 0x0
@@ -195,6 +195,9 @@ void getKeepAliveEvent(EventInfo* eventInfo, uint8_t site, DeviceInfo* info)
   eventInfo->eventType = ENUM_EVENT_TYPE_KEEPALIVE;
   sprintf(eventInfo->event, "%s", res);
   eventInfo->siteId = site;
+  
+  free(temp);
+
   free(res);
 }
 
@@ -210,7 +213,10 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
   char * res = malloc(sizeof(char) * 1024);
   unsigned short int index;
   char * temp = malloc(sizeof(char) * 3);
+  
   uint8_t * ptr = (uint8_t*) deviceEvent->data;
+
+  char * parsedEvent;
 
   memcpy(timestamp, getDateTime(deviceEvent->time), sizeof(char) * 25);
   timestamp[24] = 0x0;
@@ -235,9 +241,14 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0xd:
     case 0xf:
       logger(LOG_LEVEL_DEBUG, "event.c", "handle zone event");
-      strcat(res, getZoneEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      parsedEvent = getZoneEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+
+      strcat(res, parsedEvent);
       sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
       eventInfo->eventType = ENUM_EVENT_TYPE_ZONEINFO;
+      
+      free(parsedEvent);
+
       break;
 
     // SectionEvent
@@ -248,25 +259,38 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0x35:
     case 0x37:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling section event\n");
-      strcat(res, getSectionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      parsedEvent = getSectionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+
+      strcat(res, parsedEvent);
       sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
       eventInfo->eventType = ENUM_EVENT_TYPE_SECTIONINFO;
+
+      free(parsedEvent);
+
       break;
 
     // AuthenticationEvent
     case 0x1b:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling authentication event");
-      strcat(res, getAuthEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      parsedEvent = getAuthEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      strcat(res, parsedEvent);
       sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+
+      free(parsedEvent);
+
       break;
 
     // Arm / Disarm by user
     case 0x39:
     case 0x3a:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling arm/disarm event");
-      strcat(res, getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      parsedEvent = getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      strcat(res, parsedEvent);
       sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, USER_DATA_POSITION, deviceEvent->dataLength));
       eventInfo->eventType = ENUM_EVENT_TYPE_ARM_DISARM;
+      
+      free(parsedEvent);
+
       break;
 
     // SecurityEvent
@@ -274,31 +298,53 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0x29:    
     case 0x3b:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling security event");
-      strcat(res, getCommonEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength, SECURITY_EVENT_SCOPE));
+      parsedEvent = getCommonEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength, SECURITY_EVENT_SCOPE);
+      strcat(res, parsedEvent);
+
+      free(parsedEvent);
+      
       break;
 
     // ReportEvent
     case 0x25:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling report event");
-      strcat(res, getReportEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      parsedEvent = getReportEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      strcat(res, parsedEvent);
+      
       eventInfo->eventType = ENUM_EVENT_TYPE_REPORT;
+      
+      free(parsedEvent);
+
       break;
 
     // Remote Command Executed
     case 0x3f:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling command result event (%s...)", res);
-      strcat(res, getCommandEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      parsedEvent = getCommandEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      strcat(res, parsedEvent);
+      
       eventInfo->eventType = ENUM_EVENT_TYPE_COMMAND_RESPONSE;
+      
+      free(parsedEvent);
+
       break;
 
     case 0x1:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling firmware version event");
-      strcat(res, getFirmwareVersionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength));
+      parsedEvent = getFirmwareVersionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      strcat(res, parsedEvent);
+
+      free(parsedEvent);
+
       break;
 
     default: 
       logger(LOG_LEVEL_DEBUG, "event.c", "handling non-specific event");
-      strcat(res, getCommonEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength, COMMON_EVENT_SCOPE));
+      parsedEvent = getCommonEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength, COMMON_EVENT_SCOPE);
+      strcat(res, parsedEvent);
+
+      free(parsedEvent);
+
       break;
   }
 

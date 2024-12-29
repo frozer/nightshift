@@ -20,7 +20,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include "rc4.h"
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 
 #define POOL_SIZE 256
 

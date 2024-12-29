@@ -22,7 +22,7 @@
 #include "utils.h"
 #include "event.h"
 #include "dozor.h"
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 
 union rawMessage {
   struct {
@@ -75,7 +75,17 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode)
   
   ptr = (uint8_t*) packet.raw;
 
-  logger(LOG_LEVEL_DEBUG, "libdozor", "Incoming length - %d, %s", msgLength - 4, blobToHexStr(ptr, msgLength));
+  // Allocate memory for the hex string (2 characters per byte + 1 for null terminator)
+  char *hexStr = (char *)malloc(msgLength * 2 + 1);
+  if (!hexStr) {
+      return NULL;  // Return NULL if memory allocation fails
+  }
+
+  blobToHexStr(hexStr, ptr, msgLength);
+
+  logger(LOG_LEVEL_DEBUG, "libdozor", "Incoming length - %d, message length - %d, %s", msgLength, msgLength - 4, hexStr);
+
+  free(hexStr);
 
   deviceReport = malloc(sizeof(DozorReport));
   if (deviceReport == NULL)
@@ -84,6 +94,8 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode)
     events->errorCode = HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
     return events;
   }
+  
+  memset(deviceReport, 0, sizeof(DozorReport));
 
   result = getReport(deviceReport, crypto, (const unsigned char *) packet.raw, msgLength);
   if ( result < 0)
@@ -104,6 +116,9 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode)
       fprintf(stderr, "Unable to allocate memory for event info structure: %s\n", strerror(errno));
       return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
     }
+
+    memset(eventInfo, 0, sizeof(EventInfo));
+
     getKeepAliveEvent(eventInfo, deviceReport->site, &(deviceReport->info));
     
     logger(LOG_LEVEL_DEBUG, "libdozor", "[%d] %s", eventInfo->eventType, eventInfo->event);
@@ -128,6 +143,8 @@ Events * dozor_unpackV2(CryptoSession * crypto, uint8_t * raw, char * pinCode)
       return HANDLER_UNABLE_TO_ALLOCATE_MEMORY_REPORT;
     }
 
+    memset(eventInfo, 0, sizeof(EventInfo));
+    
     convertDeviceEventToCommon(eventInfo, deviceReport->site, &(deviceReport->events[index]));
     
     logger(LOG_LEVEL_DEBUG, "libdozor", "[%d] %s", eventInfo->eventType, eventInfo->event);

@@ -19,7 +19,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 
 void getISODateTime(char* buffer, size_t bufferSize) {
     // Get current time
