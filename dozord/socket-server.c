@@ -78,6 +78,8 @@ void * connectionCb(void * payload) {
     return -1;
   }
 
+  responsePayload->responseLength = 0;
+  
   // @todo handle return value, -1 - error
   connInfo->on_message(responsePayload, data, &connInfo->clientIp);
 
