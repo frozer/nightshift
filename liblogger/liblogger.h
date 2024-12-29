@@ -17,5 +17,5 @@ void set_log_level(LogLevel level);
 LogLevel get_log_level();
 char * logLevel2Str(LogLevel level);
 void logger(LogLevel level, const char* module, const char* format, ...);
-void blobToHexStr(char *res, uint8_t *data, int data_length);
+void blobToHexStr(char *res, const uint8_t *data, const int data_length);
 #endif // LIBLOGGER_H

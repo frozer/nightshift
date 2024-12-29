@@ -38,7 +38,7 @@ void logger(LogLevel level, const char* module, const char* format, ...) {
     printf("[%s] %s: %s\n", logLevel2Str(level), module, logMessage);
 }
 
-void blobToHexStr(char *res, uint8_t *data, int data_length) {
+void blobToHexStr(char *res, const uint8_t *data, const int data_length) {
     int offset = 0;
     for (int i = 0; i < data_length; i++) {
         offset += snprintf(res + offset, 3, "%02x", data[i]);
