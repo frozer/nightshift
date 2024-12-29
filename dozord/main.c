@@ -26,7 +26,7 @@
 #include <stdbool.h>
 #include <mosquitto.h>
 #include <signal.h>
-#include <dozor.h>
+#include "dozor.h"
 #include "command.h"
 #include "nightshift-mqtt.h"
 #include "logger.h"

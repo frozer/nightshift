@@ -20,7 +20,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <errno.h>
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 #include "device-event.h"
 
 const unsigned char MSGDATASIZE[68] = { 

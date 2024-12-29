@@ -17,7 +17,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 
 void prettyLogger(LogLevel level, const char* source, const char* message);
 

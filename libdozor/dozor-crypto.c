@@ -17,7 +17,7 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 #include "dozor-crypto.h"
 #include "utils.h"
 #include "rc4.h"

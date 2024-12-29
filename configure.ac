@@ -9,8 +9,6 @@ AC_PROG_CC
 
 AC_PROG_MAKE_SET
 
-
-
 # Checks for libraries.
 AX_PTHREAD
 

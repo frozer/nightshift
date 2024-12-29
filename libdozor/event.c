@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "event.h"
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 
 const char events[EVENT_COUNT][MAX_EVENT_NAME_LENGTH] = {
 // 0x0

@@ -22,7 +22,7 @@
 #include "utils.h"
 #include "event.h"
 #include "dozor.h"
-#include "../liblogger/liblogger.h"
+#include "liblogger.h"
 
 union rawMessage {
   struct {
