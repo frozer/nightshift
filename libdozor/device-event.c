@@ -83,7 +83,7 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
   return eventCount;
 }
 
-void getDeviceEvent(DeviceEvent * deviceEvent, const uint8_t * raw, unsigned short int eventSize)
+static void getDeviceEvent(DeviceEvent * deviceEvent, const uint8_t * raw, unsigned short int eventSize)
 {
   unsigned short int eventDataSize = 0;
   
