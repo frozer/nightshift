@@ -97,7 +97,7 @@ unsigned short int getDeviceEvents(const uint8_t * raw, long int bufSize, Device
         
       blobToHexStr(hexStr, &raw[index], eventSize);
 
-      logger(LOG_LEVEL_INFO, "device-event(getDeviceEvents)", "event id 0x%x: %s", raw[index], hexStr);
+      logger(LOG_LEVEL_DEBUG, "device-event(getDeviceEvents)", "event id 0x%x: %s", raw[index], hexStr);
 
       free(hexStr);
     }
