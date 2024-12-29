@@ -209,7 +209,7 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
   eventInfo->eventType = ENUM_EVENT_TYPE_COMMONEVENT;
 
   const char * template = "{\"site\":%d,\"typeId\":%d,\"timestamp\":\"%s\",\"data\":\"";
-  char * timestamp = malloc(sizeof(char) * 25);
+  char * timestamp = "";
   char * res = malloc(sizeof(char) * 1024);
   unsigned short int index;
   char * temp = malloc(sizeof(char) * 3);
@@ -217,9 +217,11 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
   uint8_t * ptr = (uint8_t*) deviceEvent->data;
 
   char * parsedEvent;
+  char * parsedSubEvent;
 
-  memcpy(timestamp, getDateTime(deviceEvent->time), sizeof(char) * 25);
-  timestamp[24] = 0x0;
+  if (deviceEvent->time != 0x00000000) {
+    timestamp = getDateTime(deviceEvent->time);
+  }
 
   sprintf(res, template, site, deviceEvent->type, timestamp);
 
@@ -241,12 +243,14 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0xd:
     case 0xf:
       logger(LOG_LEVEL_DEBUG, "event.c", "handle zone event");
-      parsedEvent = getZoneEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
-
-      strcat(res, parsedEvent);
-      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      parsedSubEvent = getZoneEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedEvent = getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength);
+      
+      strcat(res, parsedSubEvent);
+      sprintf(eventInfo->sourceId, "%s", parsedEvent);
       eventInfo->eventType = ENUM_EVENT_TYPE_ZONEINFO;
       
+      free(parsedSubEvent);
       free(parsedEvent);
 
       break;
@@ -259,12 +263,14 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0x35:
     case 0x37:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling section event\n");
-      parsedEvent = getSectionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedSubEvent = getSectionEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedEvent = getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength);
 
-      strcat(res, parsedEvent);
-      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      strcat(res, parsedSubEvent);
+      sprintf(eventInfo->sourceId, "%s", parsedEvent);
       eventInfo->eventType = ENUM_EVENT_TYPE_SECTIONINFO;
 
+      free(parsedSubEvent);
       free(parsedEvent);
 
       break;
@@ -272,10 +278,13 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     // AuthenticationEvent
     case 0x1b:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling authentication event");
-      parsedEvent = getAuthEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
-      strcat(res, parsedEvent);
-      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength));
+      parsedSubEvent = getAuthEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedEvent = getData(deviceEvent->data, DEFAULT_DATA_POSITION, deviceEvent->dataLength);
 
+      strcat(res, parsedSubEvent);
+      sprintf(eventInfo->sourceId, "%s", parsedEvent);
+
+      free(parsedSubEvent);
       free(parsedEvent);
 
       break;
@@ -284,13 +293,16 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
     case 0x39:
     case 0x3a:
       logger(LOG_LEVEL_DEBUG, "event.c", "handling arm/disarm event");
-      parsedEvent = getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
-      strcat(res, parsedEvent);
-      sprintf(eventInfo->sourceId, "%s", getData(deviceEvent->data, USER_DATA_POSITION, deviceEvent->dataLength));
+      parsedSubEvent = getSecurityEventData(deviceEvent->type, deviceEvent->data, deviceEvent->dataLength);
+      parsedEvent = getData(deviceEvent->data, USER_DATA_POSITION, deviceEvent->dataLength);
+
+      strcat(res, parsedSubEvent);
+      sprintf(eventInfo->sourceId, "%s", parsedEvent);
       eventInfo->eventType = ENUM_EVENT_TYPE_ARM_DISARM;
       
+      free(parsedSubEvent);
       free(parsedEvent);
-
+      
       break;
 
     // SecurityEvent
