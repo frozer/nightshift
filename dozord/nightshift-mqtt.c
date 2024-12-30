@@ -16,17 +16,13 @@ struct mosquitto * mosq = NULL;
 
 void publish(char * topic, char * message, bool retainFlag) {
   int rc = 0;
-  char logMessage[256];
+  char logMessage[2048];
 
   if (GlobalMQTTConnected) {
     rc = mosquitto_publish(mosq, NULL, topic, strlen(message), message, 0, retainFlag);
     if (rc != MOSQ_ERR_SUCCESS) {
       snprintf(logMessage, sizeof(logMessage), "Failed to publish to topic \"%s\". Error code: %d", topic, rc);
       prettyLogger(LOG_LEVEL_ERROR, "MQTT", logMessage);
-    } else {
-      // snprintf(logMessage, sizeof(logMessage), "\"%s\" published to \"%s\"", message, topic);
-      // @todo going to be LOG_LEVEL_DEBUG
-      // prettyLogger(LOG_LEVEL_INFO, "MQTT", logMessage);
     }
   } else {
     // @todo build outgoing queue
