@@ -362,11 +362,14 @@ void convertDeviceEventToCommon(EventInfo* eventInfo, uint8_t site, DeviceEvent*
 
   strcat(res, "}");
 
-  free(timestamp);
-  free(temp);
-  
   sprintf(eventInfo->event, "%s", res);
   eventInfo->siteId = site;
+
+  if (deviceEvent->time != 0x00000000) {
+    free(timestamp);
+  }
+  
+  free(temp);
   free(res);
 }
 
