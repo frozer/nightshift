@@ -165,11 +165,14 @@ on_message_t socket_message_callback(CommandResponse * response, uint8_t * data,
     for (index = 0; index < events->length; index++) {
       pthread_t publishThread = 0;
 
-      snprintf(logMessage, sizeof(logMessage), "%s", events->items[index].event);
-      prettyLogger(LOG_LEVEL_INFO, clientIp, logMessage);
-      
+      // skip keep alive updates to being logged
+      if (events->items[index].eventType != ENUM_EVENT_TYPE_KEEPALIVE) {
+        snprintf(logMessage, sizeof(logMessage), "%s", events->items[index].event);
+        prettyLogger(LOG_LEVEL_INFO, clientIp, logMessage);
+      }
+
       strncpy(payload->deviceIp, clientIp, sizeof(char) * 16);
-      memcpy(payload->data, &events->items[0], sizeof(EventInfo));
+      memcpy(payload->data, &events->items[index], sizeof(EventInfo));
 
       publishEvent(payload);
     }
