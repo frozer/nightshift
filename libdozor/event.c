@@ -445,11 +445,15 @@ static char * getAuthEventData(uint8_t type, uint8_t * data, uint8_t len)
 
 static char * getSecurityEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
-  char * template = ",\"user\":%s,\"event\":\"%s\",\"scope\":\"Security\"";
+  char * template = ",\"user\":%s,\"event\":\"%s\",\"scope\":\"Security\",\"sections\":%s";
   char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
   char * extractedData = getData(data, USER_DATA_POSITION, len);
+  uint8_t state_byte = data[0];
+  char affectedSections[50];
 
-  sprintf(res, template, extractedData, getEventNameByType(type));
+  get_affected_sections(state_byte, affectedSections);
+
+  sprintf(res, template, extractedData, getEventNameByType(type), affectedSections);
 
   free(extractedData);
   return res;
@@ -509,4 +513,25 @@ static char * getEventNameByType(uint8_t type)
     return (char *) events[type];
   }
   return "null";
+}
+
+void get_affected_sections(uint8_t state_byte, char *result) {
+    char temp[4]; // Temporary buffer for individual port numbers
+    int first = 1; // Flag to track if it's the first port in the list
+
+    strcpy(result, "["); // Initialize the result with the opening bracket
+
+    // Iterate through each bit (8 ports)
+    for (int i = 0; i < 8; i++) {
+        if ((state_byte & (1 << i))) { // Check if the i-th bit is 1 (closed)
+            if (!first) {
+                strcat(result, ", "); // Add a comma and space for subsequent ports
+            }
+            snprintf(temp, sizeof(temp), "%d", i + 1); // Convert port number to string
+            strcat(result, temp); // Append the port number to the result
+            first = 0; // Clear the flag after the first port
+        }
+    }
+
+    strcat(result, "]"); // Append the closing bracket
 }
