@@ -414,13 +414,18 @@ static char * getCommandEventData(uint8_t type, uint8_t * data, uint8_t len)
 
 static char * getReportEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
-  char * template = ",\"temp\":%s,\"event\":\"%s\",\"scope\":\"Common\"";
-  char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
-  char * extractedData = getData(data, REPORT_TEMP_DATA_POSITION, len);
-  
-  sprintf(res, template, extractedData, getEventNameByType(type));
+  char * temperatureReportTemplate = ",\"temp\":%s,\"event\":\"%s\",\"scope\":\"Common\"";
+  char * unknownReportTemplate = ",\"temp\":null,\"event\":\"%s\",\"scope\":\"Common\"";
+  char * res = malloc(sizeof(char) * (strlen(temperatureReportTemplate) + MAX_EVENT_NAME_LENGTH + 2));
 
-  free(extractedData);
+  if (data[0] == 2) {
+    char * extractedData = getData(data, REPORT_TEMP_DATA_POSITION, len);
+    sprintf(res, temperatureReportTemplate, extractedData, getEventNameByType(type));
+
+    free(extractedData);
+  } else {
+    sprintf(res, unknownReportTemplate, getEventNameByType(type));
+  }
   
   return res;
 }
