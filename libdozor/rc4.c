@@ -54,9 +54,9 @@ void codec(unsigned char* data, CryptoSession * crypto, const size_t msgLength)
   unsigned short int data_index;
   unsigned char old;
 
-  logger(LOG_LEVEL_DEBUG, "rc4(codec)", "called for - %s\n", data);
-  logger(LOG_LEVEL_DEBUG, "rc4(codec)", "iterator %d\n", i);
-  logger(LOG_LEVEL_DEBUG, "rc4(codec)", "pointer %d\n", j);
+  // logger(LOG_LEVEL_DEBUG, "rc4(codec)", "called for - %s\n", data);
+  // logger(LOG_LEVEL_DEBUG, "rc4(codec)", "iterator %d\n", i);
+  // logger(LOG_LEVEL_DEBUG, "rc4(codec)", "pointer %d\n", j);
 
   // convert data
   for (data_index = 0; data_index < msgLength; data_index++) {    
@@ -67,7 +67,7 @@ void codec(unsigned char* data, CryptoSession * crypto, const size_t msgLength)
     kword = crypto->pool[(crypto->pool[i] + crypto->pool[j]) % POOL_SIZE];
     data[data_index] = old ^ kword;
 
-    logger(LOG_LEVEL_DEBUG, "rc4(codec)", "[%d] 0x%x -> 0x%x\n", data_index, old, data[data_index]);
+    // logger(LOG_LEVEL_DEBUG, "rc4(codec)", "[%d] 0x%x -> 0x%x\n", data_index, old, data[data_index]);
   }
 
   crypto->iterator = i;

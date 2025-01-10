@@ -446,10 +446,10 @@ static char * getAuthEventData(uint8_t type, uint8_t * data, uint8_t len)
 static char * getSecurityEventData(uint8_t type, uint8_t * data, uint8_t len)
 {
   char * template = ",\"user\":%s,\"event\":\"%s\",\"scope\":\"Security\",\"sections\":%s";
-  char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + 2));
+  char * res = malloc(sizeof(char) * (strlen(template) + MAX_EVENT_NAME_LENGTH + MAX_SECTION_LENGTH + 2));
   char * extractedData = getData(data, USER_DATA_POSITION, len);
   uint8_t state_byte = data[0];
-  char affectedSections[50];
+  char affectedSections[MAX_SECTION_LENGTH];
 
   get_affected_sections(state_byte, affectedSections);
 
